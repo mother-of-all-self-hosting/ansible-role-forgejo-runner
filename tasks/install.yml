@@ -1,0 +1,59 @@
+---
+
+- name: Ensure Forgejo Runner paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ forgejo_runner_uid }}"
+    group: "{{ forgejo_runner_gid }}"
+  with_items:
+    - "{{ forgejo_runner_base_path }}"
+    - "{{ forgejo_runner_config_path }}"
+
+- name: Ensure Forgejo Runner support files are installed
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/{{ item }}.j2"
+    dest: "{{ forgejo_runner_base_path }}/{{ item }}"
+    mode: 0640
+    owner: "{{ forgejo_runner_uid }}"
+    group: "{{ forgejo_runner_gid }}"
+  with_items:
+    - env
+
+- name: Ensure Forgejo Runner configuration files are present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/{{ item }}.j2"
+    dest: "{{ forgejo_runner_config_path }}/{{ item }}"
+    mode: 0640
+    owner: "{{ forgejo_runner_uid }}"
+    group: "{{ forgejo_runner_gid }}"
+  with_items:
+    - config.yaml
+
+- name: Ensure Forgejo Runner container image is pulled via command
+  when: devture_systemd_docker_base_container_image_pull_method == 'command'
+  ansible.builtin.command:
+    cmd: "{{ devture_systemd_docker_base_host_command_docker }} pull {{ forgejo_runner_container_image }}"
+  register: result
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: result is not failed
+
+- name: Ensure Forgejo Runner container network is created via community.docker.docker_network
+  when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
+  community.general.docker_network:
+    name: "{{ forgejo_runner_container_network }}"
+    driver: bridge
+
+- name: Ensure Forgejo Runner container network exists via command
+  when: devture_systemd_docker_base_container_network_creation_method == 'command'
+  ansible.builtin.command:
+    cmd: "{{ devture_systemd_docker_base_host_command_docker }} network create {{ forgejo_runner_container_network }}"
+  register: network_creation_result
+  failed_when: network_creation_result.rc != 0 and 'already exists' not in network_creation_result.stderr
+
+- name: Ensure Forgejo Runner systemd service is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/forgejo-runner.service.j2"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ forgejo_runner_identifier }}.service"

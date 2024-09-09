@@ -1,0 +1,85 @@
+---
+
+# Project source code URL: https://code.forgejo.org/forgejo/runner
+
+forgejo_runner_enabled: true
+
+forgejo_runner_identifier: forgejo-runner
+
+forgejo_runner_version: 3.5.1
+
+# The image always runs with UID/GID 1000, which causes a permission
+# issue when trying to access the Docker socket.  For this reason,
+# it's necessary to force the image to run as root.
+forgejo_runner_uid: '0'
+forgejo_runner_gid: '0'
+
+forgejo_runner_base_path: "/{{ forgejo_runner_identifier }}"
+forgejo_runner_config_path: "{{ forgejo_runner_base_path }}/config"
+
+forgejo_runner_container_image: "{{ forgejo_runner_container_image_registry_prefix }}forgejo/runner:{{ forgejo_runner_container_image_tag }}"
+forgejo_runner_container_image_registry_prefix: code.forgejo.org/
+forgejo_runner_container_image_tag: "{{ forgejo_runner_version }}"
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+forgejo_runner_container_network: "{{ forgejo_runner_identifier }}"
+
+forgejo_runner_docker_socket_path: /var/run/docker.sock
+
+# The runner name.
+forgejo_runner_runner_name: ''
+
+# The instance URL.
+forgejo_runner_instance_url: ''
+
+# The registration token.
+#
+# This should be obtained via Forgejo's web interface, under:
+#
+#   Site Administration -> Actions -> Runners -> Create new runner
+forgejo_runner_registration_token: ''
+
+# How many concurrent tasks should be executed simultaneously.
+forgejo_runner_capacity: 1
+
+# The labels that should be applied to this runner.
+#
+# This is an important setting.  Take a look at the following page for
+# more information:
+#
+#  https://forgejo.org/docs/latest/admin/actions/#labels-and-runs-on
+forgejo_runner_labels: []
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+# Use this to expose this container to another reverse proxy, which runs in a different container network.
+forgejo_runner_container_additional_networks: "{{ forgejo_runner_container_additional_networks_auto + forgejo_runner_container_additional_networks_custom }}"
+forgejo_runner_container_additional_networks_auto: []
+forgejo_runner_container_additional_networks_custom: []
+
+# A list of additional "volumes" to mount in the container.
+#
+# See the `--mount` documentation for the `docker run` command.
+#
+# Example:
+# forgejo_runner_container_additional_volumes:
+#   - type: bind
+#     src: /path/on/the/host
+#     dst: /data
+#   - type: bind
+#     src: /another-path/on/the/host
+#     dst: /read-only
+#     options: readonly
+forgejo_runner_container_additional_volumes: []
+
+# A list of extra arguments to pass to the container
+forgejo_runner_container_extra_arguments: []
+
+# Additional environment variables.
+forgejo_runner_environment_variables_additional_variables: ''
+
+# List of systemd services that forgejo-runner.service depends on
+forgejo_runner_systemd_required_services_list: "{{ forgejo_runner_systemd_required_services_list_default + forgejo_runner_systemd_required_services_list_auto + forgejo_runner_systemd_required_services_list_custom }}"
+forgejo_runner_systemd_required_services_list_default: ['docker.service']
+forgejo_runner_systemd_required_services_list_auto: []
+forgejo_runner_systemd_required_services_list_custom: []

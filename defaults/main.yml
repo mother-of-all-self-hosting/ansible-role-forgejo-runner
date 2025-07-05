@@ -6,7 +6,7 @@ forgejo_runner_enabled: true
 
 forgejo_runner_identifier: forgejo-runner
 
-forgejo_runner_version: 6.3.1
+forgejo_runner_version: 6.4.0
 
 # The image always runs with UID/GID 1000, which causes a permission
 # issue when trying to access the Docker socket.  For this reason,

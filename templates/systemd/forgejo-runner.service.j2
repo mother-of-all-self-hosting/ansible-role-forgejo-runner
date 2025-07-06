@@ -44,7 +44,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--log-driver=none \
 			--network={{ forgejo_runner_container_network }} \
 			--mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
-			--mount type=bind,src={{ forgejo_runner_docker_socket_path }},dst=/var/run/docker.sock \
+			{% if forgejo_runner_docker_endpoint_is_unix_socket %}
+			--mount type=bind,src={{ forgejo_runner_docker_endpoint | replace('unix://', '') }},dst=/var/run/docker.sock,ro \
+			{% endif %}
 			--tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
 			{% for volume in forgejo_runner_container_additional_volumes %}
 			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \

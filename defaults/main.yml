@@ -24,8 +24,6 @@ forgejo_runner_container_image_tag: "{{ forgejo_runner_version }}"
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 forgejo_runner_container_network: "{{ forgejo_runner_identifier }}"
 
-forgejo_runner_docker_socket_path: /var/run/docker.sock
-
 # The runner name.
 forgejo_runner_runner_name: ''
 
@@ -49,6 +47,10 @@ forgejo_runner_capacity: 1
 #
 #  https://forgejo.org/docs/latest/admin/actions/#labels-and-runs-on
 forgejo_runner_labels: []
+
+# The Docker endpoint to be used.
+forgejo_runner_docker_endpoint_is_unix_socket: true
+forgejo_runner_docker_endpoint: unix:///var/run/docker.sock
 
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.

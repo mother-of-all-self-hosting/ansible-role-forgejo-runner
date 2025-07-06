@@ -1,5 +1,19 @@
 ---
 
+- name: (Deprecation) Catch and report renamed Forgejo Runner variables
+  ansible.builtin.fail:
+    msg: >-
+      The variable `{{ item.old }}` is deprecated. Please use `{{ item.new }}` instead.
+  when: "item.old in vars"
+  with_items:
+    - {'old': 'forgejo_runner_docker_socket_path', 'new': 'forgejo_runner_docker_endpoint'}
+
+- name: Fail if Forgejo Runner docker endpoint syntax invalid
+  ansible.builtin.fail:
+    msg: >-
+      forgejo_runner_docker_endpoint must look like `unix:///var/run/docker.sock` or `tcp://host:2345`
+  when: "not (forgejo_runner_docker_endpoint.startswith('unix://') or forgejo_runner_docker_endpoint.startswith('tcp://'))"
+
 - name: Fail if required Forgejo Runner settings not defined
   ansible.builtin.fail:
     msg: >

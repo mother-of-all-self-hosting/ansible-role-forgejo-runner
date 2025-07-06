@@ -22,7 +22,7 @@
   with_items:
     - forgejo_runner_identifier
     - forgejo_runner_container_network
-    - forgejo_runner_docker_socket_path
+    - forgejo_runner_docker_endpoint
     - forgejo_runner_runner_name
     - forgejo_runner_instance_url
     - forgejo_runner_registration_token

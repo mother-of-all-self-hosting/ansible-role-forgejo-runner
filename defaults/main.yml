@@ -48,6 +48,23 @@ forgejo_runner_capacity: 1
 #  https://forgejo.org/docs/latest/admin/actions/#labels-and-runs-on
 forgejo_runner_labels: []
 
+# The valid volumes that are allowed to be mounted by test containers
+# spawned by the runner.
+#
+# For example, if you would like your CI jobs to be able to manipulate
+# Docker containers, you can list /var/run/docker.sock here, and then
+# specify "-v /var/run/docker:/var/run/docker" as an option when
+# launching the CI container.
+#
+# For more details, see the "valid_volumes" option here:
+#
+# - https://forgejo.org/docs/latest/admin/runner-installation/#configuration
+#
+# See also:
+#
+# - https://forgejo.org/docs/latest/user/actions/#jobsjob_idcontaineroptions
+forgejo_runner_allowed_valid_volumes: []
+
 # The Docker endpoint to be used.
 forgejo_runner_docker_endpoint_is_unix_socket: true
 forgejo_runner_docker_endpoint: unix:///var/run/docker.sock

@@ -43,6 +43,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--read-only \
 			--log-driver=none \
 			--network={{ forgejo_runner_container_network }} \
+			--env-file={{ forgejo_runner_base_path }}/env \
 			--mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
 			{% if forgejo_runner_docker_endpoint_is_unix_socket %}
 			--mount type=bind,src={{ forgejo_runner_docker_endpoint | replace('unix://', '') }},dst=/var/run/docker.sock,ro \

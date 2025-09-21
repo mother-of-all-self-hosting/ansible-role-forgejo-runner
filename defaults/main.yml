@@ -6,7 +6,7 @@ forgejo_runner_enabled: true
 
 forgejo_runner_identifier: forgejo-runner
 
-# renovate: datasource=docker depName=codeberg.org/forgejo/runner versioning=semver
+# renovate: datasource=docker depName=code.forgejo.org/forgejo/runner versioning=semver
 forgejo_runner_version: 11.0.0
 
 # The image always runs with UID/GID 1000, which causes a permission

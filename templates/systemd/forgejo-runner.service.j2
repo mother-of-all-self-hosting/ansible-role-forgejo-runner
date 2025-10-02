@@ -1,4 +1,4 @@
-#jinja2: lstrip_blocks: "True"
+#jinja2: lstrip_blocks: True
 [Unit]
 Description=Forgejo Runner ({{ forgejo_runner_identifier }})
 {% for service in forgejo_runner_systemd_required_services_list %}

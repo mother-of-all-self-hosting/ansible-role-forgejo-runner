@@ -1,3 +1,9 @@
+{#
+SPDX-FileCopyrightText: 2024-2025 Sergio Durigan Junior
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+#}
+
 log:
   # The level of logging, can be trace, debug, info, warn, error, fatal
   level: info
@@ -35,7 +41,7 @@ runner:
   # The labels of a runner are used to determine which jobs the runner can run, and how to run them.
   # Like: ["macos-arm64:host", "ubuntu-latest:docker://node:20-bookworm", "ubuntu-22.04:docker://node:20-bookworm"]
   # If it's empty when registering, it will ask for inputting labels.
-  # If it's empty when execute `deamon`, will use labels in `.runner` file.
+  # If it's empty when execute `daemon`, will use labels in `.runner` file.
   labels:
     {{ forgejo_runner_labels }}
 

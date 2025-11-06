@@ -129,6 +129,6 @@ forgejo_runner_environment_variables_additional_variables: ''
 
 # List of systemd services that forgejo-runner.service depends on
 forgejo_runner_systemd_required_services_list: "{{ forgejo_runner_systemd_required_services_list_default + forgejo_runner_systemd_required_services_list_auto + forgejo_runner_systemd_required_services_list_custom }}"
-forgejo_runner_systemd_required_services_list_default: ['docker.service']
+forgejo_runner_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
 forgejo_runner_systemd_required_services_list_auto: []
 forgejo_runner_systemd_required_services_list_custom: []

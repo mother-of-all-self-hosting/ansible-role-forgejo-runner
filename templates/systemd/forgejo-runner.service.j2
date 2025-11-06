@@ -25,15 +25,15 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_s
 ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ forgejo_runner_config_path }}/.runner ] && \
       {{ devture_systemd_docker_base_host_command_docker }} run \
       --rm \
-      --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
       --log-driver=none \
+      --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
       --read-only \
       --network={{ forgejo_runner_container_network }} \
       --mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
-      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
       {% for volume in forgejo_runner_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
       {% endfor %}
+      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
       {% for arg in forgejo_runner_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
@@ -48,19 +48,19 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ fo
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --rm \
       --name={{ forgejo_runner_identifier }} \
+      --log-driver=none \
       --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
       --read-only \
-      --log-driver=none \
       --network={{ forgejo_runner_container_network }} \
       --env-file={{ forgejo_runner_base_path }}/env \
       --mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
       {% if forgejo_runner_docker_endpoint_is_unix_socket %}
       --mount type=bind,src={{ forgejo_runner_docker_endpoint | replace('unix://', '') }},dst=/var/run/docker.sock,ro \
       {% endif %}
-      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
       {% for volume in forgejo_runner_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
       {% endfor %}
+      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
       {% for arg in forgejo_runner_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}

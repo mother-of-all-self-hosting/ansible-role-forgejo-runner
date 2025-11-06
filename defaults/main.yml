@@ -70,6 +70,24 @@ forgejo_runner_allowed_valid_volumes: []
 forgejo_runner_docker_endpoint_is_unix_socket: true
 forgejo_runner_docker_endpoint: unix:///var/run/docker.sock
 
+# Whether to enable caching for CI runs, to save and restore commonly used
+# files (built dependencies, assets...)
+# For more details see the "Cache configuration" option here:
+#
+# - https://forgejo.org/docs/latest/admin/actions/runner-installation/#cache-configuration
+
+forgejo_runner_cache_enabled: false
+# The port bound by the internal cache server. 0 uses a random available port.
+forgejo_runner_cache_port: 0
+# The directory (on the container) where to store cache data.
+# Map this to a volume for persistent storage.
+# If unset, saves the results to $HOME/.cache/actcache.
+forgejo_runner_cache_directory: ""
+# The host to connect to for caching.
+# Leave empty to spawn a server automatically.
+# If set, the URL must end with '/'.
+forgejo_runner_cache_host: ""
+
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
 # Use this to expose this container to another reverse proxy, which runs in a different container network.

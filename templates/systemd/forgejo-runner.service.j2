@@ -14,6 +14,9 @@ Description=Forgejo Runner ({{ forgejo_runner_identifier }})
 Requires={{ service }}
 After={{ service }}
 {% endfor %}
+{% for service in forgejo_runner_systemd_wanted_services_list %}
+Wants={{ service }}
+{% endfor %}
 DefaultDependencies=no
 
 [Service]

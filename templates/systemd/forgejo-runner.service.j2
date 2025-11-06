@@ -23,49 +23,49 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_s
 ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ forgejo_runner_identifier }} 2>/dev/null || true'
 
 ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ forgejo_runner_config_path }}/.runner ] && \
-			{{ devture_systemd_docker_base_host_command_docker }} run \
-			--rm \
-			--user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
-			--log-driver=none \
-			--read-only \
-			--network={{ forgejo_runner_container_network }} \
-			--mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
-			--tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
-			{% for volume in forgejo_runner_container_additional_volumes %}
-			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
-			{% endfor %}
-			{% for arg in forgejo_runner_container_extra_arguments %}
-			{{ arg }} \
-			{% endfor %}
-			{{ forgejo_runner_container_image }} \
-			forgejo-runner register \
-			--no-interactive \
-			--name {{ forgejo_runner_runner_name }} \
-			--instance {{ forgejo_runner_instance_url }} \
-			--token {{ forgejo_runner_registration_token }} \
-			--config /data/config.yaml'
+      {{ devture_systemd_docker_base_host_command_docker }} run \
+      --rm \
+      --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
+      --log-driver=none \
+      --read-only \
+      --network={{ forgejo_runner_container_network }} \
+      --mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
+      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
+      {% for volume in forgejo_runner_container_additional_volumes %}
+      --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
+      {% endfor %}
+      {% for arg in forgejo_runner_container_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
+      {{ forgejo_runner_container_image }} \
+      forgejo-runner register \
+      --no-interactive \
+      --name {{ forgejo_runner_runner_name }} \
+      --instance {{ forgejo_runner_instance_url }} \
+      --token {{ forgejo_runner_registration_token }} \
+      --config /data/config.yaml'
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
-			--rm \
-			--name={{ forgejo_runner_identifier }} \
-			--user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
-			--read-only \
-			--log-driver=none \
-			--network={{ forgejo_runner_container_network }} \
-			--env-file={{ forgejo_runner_base_path }}/env \
-			--mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
-			{% if forgejo_runner_docker_endpoint_is_unix_socket %}
-			--mount type=bind,src={{ forgejo_runner_docker_endpoint | replace('unix://', '') }},dst=/var/run/docker.sock,ro \
-			{% endif %}
-			--tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
-			{% for volume in forgejo_runner_container_additional_volumes %}
-			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
-			{% endfor %}
-			{% for arg in forgejo_runner_container_extra_arguments %}
-			{{ arg }} \
-			{% endfor %}
-			{{ forgejo_runner_container_image }} \
-			forgejo-runner daemon --config /data/config.yaml
+      --rm \
+      --name={{ forgejo_runner_identifier }} \
+      --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
+      --read-only \
+      --log-driver=none \
+      --network={{ forgejo_runner_container_network }} \
+      --env-file={{ forgejo_runner_base_path }}/env \
+      --mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
+      {% if forgejo_runner_docker_endpoint_is_unix_socket %}
+      --mount type=bind,src={{ forgejo_runner_docker_endpoint | replace('unix://', '') }},dst=/var/run/docker.sock,ro \
+      {% endif %}
+      --tmpfs=/tmp:rw,noexec,nosuid,size=1024m \
+      {% for volume in forgejo_runner_container_additional_volumes %}
+      --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
+      {% endfor %}
+      {% for arg in forgejo_runner_container_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
+      {{ forgejo_runner_container_image }} \
+      forgejo-runner daemon --config /data/config.yaml
 
 {% for network in forgejo_runner_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ forgejo_runner_identifier }}

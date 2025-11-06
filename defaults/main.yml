@@ -63,17 +63,17 @@ forgejo_runner_systemd_wanted_services_list_auto: []
 forgejo_runner_systemd_wanted_services_list_custom: []
 
 # The runner name.
-forgejo_runner_runner_name: ''
+forgejo_runner_runner_name: ""
 
 # The instance URL.
-forgejo_runner_instance_url: ''
+forgejo_runner_instance_url: ""
 
 # The registration token.
 #
 # This should be obtained via Forgejo's web interface, under:
 #
 #   Site Administration -> Actions -> Runners -> Create new runner
-forgejo_runner_registration_token: ''
+forgejo_runner_registration_token: ""
 
 # How many concurrent tasks should be executed simultaneously.
 forgejo_runner_capacity: 1
@@ -129,4 +129,4 @@ forgejo_runner_cache_host: ""
 forgejo_runner_container_extra_arguments: []
 
 # Additional environment variables.
-forgejo_runner_environment_variables_additional_variables: ''
+forgejo_runner_environment_variables_additional_variables: ""

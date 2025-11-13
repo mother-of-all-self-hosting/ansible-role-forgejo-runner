@@ -25,7 +25,7 @@ forgejo_runner_uid: '0'
 forgejo_runner_gid: '0'
 
 forgejo_runner_container_image: "{{ forgejo_runner_container_image_registry_prefix }}forgejo/runner:{{ forgejo_runner_container_image_tag }}"
-forgejo_runner_container_image_tag: "{{ forgejo_version }}"
+forgejo_runner_container_image_tag: "{{ forgejo_runner_version }}"
 forgejo_runner_container_image_registry_prefix: "{{ forgejo_runner_container_image_registry_prefix_upstream }}"
 forgejo_runner_container_image_registry_prefix_upstream: "{{ forgejo_runner_container_image_registry_prefix_upstream_default }}"
 forgejo_runner_container_image_registry_prefix_upstream_default: code.forgejo.org/

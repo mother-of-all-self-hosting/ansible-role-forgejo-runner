@@ -1,11 +1,15 @@
----
+# SPDX-FileCopyrightText: 2024-2025 Sergio Durigan Junior
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
+---
 - name: Check existence of Forgejo Runner systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ forgejo_runner_identifier }}.service"
   register: forgejo_runner_service_stat
 
-- when: forgejo_runner_service_stat.stat.exists | bool
+- name: Uninstall Forgejo Runner systemd services and files
+  when: forgejo_runner_service_stat.stat.exists | bool
   block:
     - name: Ensure Forgejo Runner systemd service is stopped
       ansible.builtin.service:
@@ -19,7 +23,7 @@
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ forgejo_runner_identifier }}.service"
         state: absent
 
-    - name: Ensure Forgejo Runner path doesn't exist
+    - name: Ensure Forgejo Runner path does not exist
       ansible.builtin.file:
         path: "{{ forgejo_runner_base_path }}"
         state: absent

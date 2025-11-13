@@ -1,20 +1,28 @@
+# SPDX-FileCopyrightText: 2024-2025 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 MASH project contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ---
-
-- block:
-    - when: forgejo_runner_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - when: forgejo_runner_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+- name: Perform Forgejo Runner installation tasks
+  when: forgejo_runner_enabled | bool
   tags:
     - setup-all
     - setup-forgejo-runner
     - install-all
     - install-forgejo-runner
+  block:
+    - name: Validate Forgejo Runner configuration
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install Forgejo Runner
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
-- block:
-    - when: not forgejo_runner_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
+- name: Perform Forgejo Runner uninstallation tasks
+  when: not forgejo_runner_enabled | bool
   tags:
     - setup-all
     - setup-forgejo-runner
+  block:
+    - name: Uninstall Forgejo Runner
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

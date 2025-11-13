@@ -1,3 +1,9 @@
+{#
+SPDX-FileCopyrightText: 2024-2025 Sergio Durigan Junior
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+#}
+
 log:
   # The level of logging, can be trace, debug, info, warn, error, fatal
   level: info
@@ -35,33 +41,33 @@ runner:
   # The labels of a runner are used to determine which jobs the runner can run, and how to run them.
   # Like: ["macos-arm64:host", "ubuntu-latest:docker://node:20-bookworm", "ubuntu-22.04:docker://node:20-bookworm"]
   # If it's empty when registering, it will ask for inputting labels.
-  # If it's empty when execute `deamon`, will use labels in `.runner` file.
+  # If it's empty when execute `daemon`, will use labels in `.runner` file.
   labels:
     {{ forgejo_runner_labels }}
 
 cache:
   # Enable cache server to use actions/cache.
-  enabled: false
+  enabled: {{ forgejo_runner_cache_enabled }}
   # The directory to store the cache data.
   # If it's empty, the cache data will be stored in $HOME/.cache/actcache.
-  dir: ""
+  dir: "{{ forgejo_runner_cache_directory }}"
   # The host of the cache server.
   # It's not for the address to listen, but the address to connect from job containers.
   # So 0.0.0.0 is a bad choice, leave it empty to detect automatically.
   host: ""
   # The port of the cache server.
   # 0 means to use a random available port.
-  port: 0
+  port: {{ forgejo_runner_cache_port }}
   # The external cache server URL. Valid only when enable is true.
   # If it's specified, act_runner will use this URL as the ACTIONS_CACHE_URL rather than start a server by itself.
   # The URL should generally end with "/".
-  external_server: ""
+  external_server: "{{ forgejo_runner_cache_host }}"
 
 container:
   # Specifies the network to which the container will connect.
   # Could be host, bridge or the name of a custom network.
   # If it's empty, create a network automatically.
-  network: ""
+  network: "{{ forgejo_runner_container_network }}"
   # Whether to create networks with IPv6 enabled. Requires the Docker daemon to be set up accordingly.
   # Only takes effect if "network" is set to "".
   enable_ipv6: false

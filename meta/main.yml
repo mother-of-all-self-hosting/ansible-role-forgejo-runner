@@ -1,6 +1,9 @@
+---
 galaxy_info:
   author: Sergio Durigan Junior
+  company: mash
   role_name: forgejo_runner
+  namespace: mash
   description: Forgejo Runner
   platforms:
     - name: Debian
@@ -9,11 +12,11 @@ galaxy_info:
     - name: Ubuntu
       versions:
         - all
-    - name: Archlinux
+    - name: ArchLinux
       versions:
         - all
     - name: EL
       versions:
-        - 7
-  license: GPL-3.0-or-later
-  min_ansible_version: '2.1'
+        - all
+  license: AGPL-3.0-or-later
+  min_ansible_version: "2.1"

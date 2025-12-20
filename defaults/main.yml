@@ -129,7 +129,9 @@ forgejo_runner_cache_directory: ""
 forgejo_runner_cache_host: ""
 
 # A list of extra arguments to pass to the container
-forgejo_runner_container_extra_arguments: []
+forgejo_runner_container_extra_arguments: "{{ forgejo_runner_container_extra_arguments_auto + forgejo_runner_container_extra_arguments_custom }}"
+forgejo_runner_container_extra_arguments_auto: []
+forgejo_runner_container_extra_arguments_custom: []
 
 # Additional environment variables.
 forgejo_runner_environment_variables_additional_variables: ""

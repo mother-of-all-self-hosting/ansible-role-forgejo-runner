@@ -128,7 +128,7 @@ forgejo_runner_cache_directory: ""
 # If set, the URL must end with '/'.
 forgejo_runner_cache_host: ""
 
-# A list of extra arguments to pass to the container
+# A list of extra arguments to pass to the container (`docker create` command)
 forgejo_runner_container_extra_arguments: "{{ forgejo_runner_container_extra_arguments_auto + forgejo_runner_container_extra_arguments_custom }}"
 forgejo_runner_container_extra_arguments_auto: []
 forgejo_runner_container_extra_arguments_custom: []

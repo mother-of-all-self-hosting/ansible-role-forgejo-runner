@@ -24,6 +24,8 @@
   when: "lookup('vars', item, default='') | string | length == 0"
   with_items:
     - forgejo_runner_identifier
+    - forgejo_runner_uid
+    - forgejo_runner_gid
     - forgejo_runner_container_network
     - forgejo_runner_docker_endpoint
     - forgejo_runner_runner_name

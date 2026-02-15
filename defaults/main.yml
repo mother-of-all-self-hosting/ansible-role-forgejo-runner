@@ -35,6 +35,9 @@ forgejo_runner_container_image_force_pull: "{{ forgejo_runner_container_image.en
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 forgejo_runner_container_network: "{{ forgejo_runner_identifier }}"
 
+# Control if the container network is deleted on uninstalling.
+forgejo_runner_container_network_deletion_enabled: true
+
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
 # Use this to expose this container to another reverse proxy, which runs in a different container network.

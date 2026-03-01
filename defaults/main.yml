@@ -74,6 +74,37 @@ forgejo_runner_systemd_wanted_services_list_default: []
 forgejo_runner_systemd_wanted_services_list_auto: []
 forgejo_runner_systemd_wanted_services_list_custom: []
 
+# Controls how long to wait for the container to stop gracefully before killing it.
+forgejo_runner_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
+
+# Controls how long the pre-start cleanup should wait for stale container-name release
+# before failing startup explicitly.
+forgejo_runner_container_cleanup_timeout_seconds: "{{ devture_systemd_docker_base_container_cleanup_timeout_seconds }}"
+
+# Controls the delay between pre-start cleanup retries.
+forgejo_runner_container_cleanup_retry_delay_seconds: "{{ devture_systemd_docker_base_container_cleanup_retry_delay_seconds }}"
+
+# Shell command used in the systemd pre-start phase to deterministically remove a stale
+# container and wait until Docker releases its name.
+forgejo_runner_container_cleanup_command: |
+  i=0;
+  while [ "$i" -lt {{ forgejo_runner_container_cleanup_timeout_seconds }} ]; do
+  {{ devture_systemd_docker_base_host_command_docker }} stop -t {{ forgejo_runner_container_stop_grace_time_seconds }} {{ forgejo_runner_identifier }} >/dev/null 2>&1 || true;
+  {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ forgejo_runner_identifier }} >/dev/null 2>&1 || true;
+  if {{ devture_systemd_docker_base_host_command_docker }} container inspect {{ forgejo_runner_identifier }} >/dev/null 2>&1; then
+  i=$((i + 1));
+  sleep {{ forgejo_runner_container_cleanup_retry_delay_seconds }};
+  continue;
+  fi;
+  if {{ devture_systemd_docker_base_host_command_docker }} info >/dev/null 2>&1; then
+  exit 0;
+  fi;
+  echo "Failed to query Docker daemon while cleaning up {{ forgejo_runner_identifier }}" >&2;
+  exit 1;
+  done;
+  echo "Failed to remove stale container {{ forgejo_runner_identifier }} after {{ forgejo_runner_container_cleanup_timeout_seconds }} attempts" >&2;
+  exit 1
+
 # The runner name.
 forgejo_runner_runner_name: ""
 

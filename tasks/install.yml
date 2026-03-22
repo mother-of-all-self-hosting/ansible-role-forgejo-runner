@@ -42,20 +42,20 @@
     source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
     force_source: "{{ forgejo_runner_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
     force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else forgejo_runner_container_image_force_pull }}"
-  register: forgejo_runner_container_image_pull_result
+  register: forgejo_runner_container_image_pull_result_ansible_module
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
-  until: forgejo_runner_container_image_pull_result is not failed
+  until: forgejo_runner_container_image_pull_result_ansible_module is not failed
 
 - name: Ensure Forgejo Runner container image is pulled via ansible.builtin.command
   when: devture_systemd_docker_base_container_image_pull_method == 'command'
   ansible.builtin.command:
     cmd: "{{ devture_systemd_docker_base_host_command_docker }} pull {{ forgejo_runner_container_image }}"
-  register: forgejo_runner_container_image_pull_result
+  register: forgejo_runner_container_image_pull_result_command
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
-  until: forgejo_runner_container_image_pull_result is not failed
-  changed_when: "'Downloaded newer image' in forgejo_runner_container_image_pull_result.stdout"
+  until: forgejo_runner_container_image_pull_result_command is not failed
+  changed_when: "'Downloaded newer image' in forgejo_runner_container_image_pull_result_command.stdout"
 
 - name: Ensure Forgejo Runner container network is created via community.docker.docker_network
   when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
@@ -92,5 +92,6 @@
         forgejo_runner_support_files_result.changed | default(false)
         or forgejo_runner_config_file_result.changed | default(false)
         or forgejo_runner_systemd_service_result.changed | default(false)
-        or forgejo_runner_container_image_pull_result.changed | default(false)
+        or forgejo_runner_container_image_pull_result_ansible_module.changed | default(false)
+        or forgejo_runner_container_image_pull_result_command.changed | default(false)
       }}

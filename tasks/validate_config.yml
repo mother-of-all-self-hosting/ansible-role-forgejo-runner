@@ -10,6 +10,7 @@
   when: "item.old in vars"
   with_items:
     - { "old": "forgejo_runner_docker_socket_path", "new": "forgejo_runner_docker_endpoint" }
+    - { "old": "forgejo_runner_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
 - name: Fail if Forgejo Runner docker endpoint syntax invalid
   ansible.builtin.fail:

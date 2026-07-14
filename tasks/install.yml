@@ -29,7 +29,7 @@
 - name: Ensure Forgejo Runner configuration file installed
   ansible.builtin.copy:
     content: "{{ forgejo_runner_configuration | to_nice_yaml(indent=2, width=999999) }}"
-    dest: "{{ forgejo_runner_base_path }}/config.yaml"
+    dest: "{{ forgejo_runner_config_path }}/config.yaml"
     mode: "0640"
     owner: "{{ forgejo_runner_uid }}"
     group: "{{ forgejo_runner_gid }}"

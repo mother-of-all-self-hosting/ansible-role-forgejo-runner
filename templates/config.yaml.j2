@@ -47,9 +47,14 @@ runner:
 
 server:
   # A map of connections to one or more Forgejo instances.
+  #
   # See https://forgejo.org/docs/latest/admin/actions/registration/ for how
-  # to obtain the `uuid` and `token` values (via "Create new runner" in the
-  # web UI).
+  # to obtain the `uuid` and `token` values.
+  #
+  # It is possible to obtain them via "Create new runner" in the web UI.
+  #
+  # Alternatively, if you run the Forgejo instance by yourself, it is possible
+  # to use Forgejo's command line utility to register the runner with the instance.
   connections:
     {{ forgejo_runner_connection_name }}:
       url: "{{ forgejo_runner_instance_url }}"

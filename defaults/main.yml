@@ -104,17 +104,24 @@ forgejo_runner_container_cleanup_command: |
   echo "Failed to remove stale container {{ forgejo_runner_identifier }} after {{ forgejo_runner_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
 
-# The runner name.
-forgejo_runner_runner_name: ""
-
 # The instance URL.
 forgejo_runner_instance_url: ""
 
-# The registration token.
+# The name of the connection, as it will appear under `server.connections`
+# in the Forgejo Runner configuration file. Purely cosmetic.
+forgejo_runner_connection_name: "{{ forgejo_runner_identifier }}"
+
+# The connection's UUID and token, used to authenticate against the Forgejo
+# instance. These are declared directly in the runner's configuration file
+# (under `server.connections`), rather than being passed to the deprecated
+# `forgejo-runner register` command.
 #
-# This should be obtained via Forgejo's web interface, under:
+# Both values are obtained via Forgejo's web interface, under:
 #
 #   Site Administration -> Actions -> Runners -> Create new runner
+#
+# (or the equivalent page at the organization/user/repository level)
+forgejo_runner_connection_uuid: ""
 forgejo_runner_registration_token: ""
 
 # How many concurrent tasks should be executed simultaneously.

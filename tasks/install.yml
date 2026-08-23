@@ -26,14 +26,25 @@
     - env
   register: forgejo_runner_support_files_result
 
+# The file must live in `forgejo_runner_config_path`, because that is the directory
+# which gets bind-mounted into the container as `/data`, and both the registration
+# command and the daemon are invoked with `--config /data/config.yaml`.
 - name: Ensure Forgejo Runner configuration file installed
   ansible.builtin.copy:
     content: "{{ forgejo_runner_configuration | to_nice_yaml(indent=2, width=999999) }}"
-    dest: "{{ forgejo_runner_base_path }}/config.yaml"
+    dest: "{{ forgejo_runner_config_path }}/config.yaml"
     mode: "0640"
     owner: "{{ forgejo_runner_uid }}"
     group: "{{ forgejo_runner_gid }}"
   register: forgejo_runner_config_file_result
+
+# Installations done while the configuration file was written one directory too
+# high are left with a stray copy there, which is never read by anything, but
+# looks like the live configuration. Remove it, so that only one file is the truth.
+- name: Ensure stray Forgejo Runner configuration file does not exist
+  ansible.builtin.file:
+    path: "{{ forgejo_runner_base_path }}/config.yaml"
+    state: absent
 
 - name: Ensure Forgejo Runner container image is pulled via community.docker.docker_image_pull
   when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'

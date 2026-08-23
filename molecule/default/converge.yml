@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Include roles for Forgejo Runner Molecule tests
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    # Minted by prepare.yml against the helper Forgejo. Read from disk rather
+    # than re-minted, so that the value (which ends up in the systemd unit) is
+    # the same on every converge run and the idempotence check stays honest.
+    - name: Read the Forgejo Runner registration token
+      ansible.builtin.slurp:
+        src: /root/forgejo-runner-molecule/registration-token
+      register: forgejo_runner_molecule_registration_token_file
+
+    - name: Set the Forgejo Runner registration token
+      ansible.builtin.set_fact:
+        forgejo_runner_registration_token: "{{ forgejo_runner_molecule_registration_token_file.content | b64decode | trim }}"
+
+    - name: Include roles for Forgejo Runner Molecule tests
+      ansible.builtin.include_role:
+        name: "{{ role_name }}"
+        public: true
+      loop:
+        - com.devture.ansible.role.playbook_help
+        - com.devture.ansible.role.systemd_docker_base
+        - "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+      loop_control:
+        loop_var: role_name
+
+- name: Ensure Forgejo Runner service is started
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure systemd daemon is reloaded
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Ensure Forgejo Runner systemd service is started
+      ansible.builtin.systemd_service:
+        name: forgejo-runner-default.service
+        state: started

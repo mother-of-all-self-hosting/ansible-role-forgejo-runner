@@ -1,0 +1,98 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    force: true
+driver:
+  name: docker
+platforms:
+  - name: forgejo-runner-${MOLECULE_DISTRO:-ubuntu2604}-default
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callback_result_format: yaml
+  inventory:
+    group_vars:
+      all:
+        # Helper variables
+        forgejo_runner_debug_service_enabled: false
+
+        # A runner is only meaningful against a Forgejo instance, so the
+        # scenario deploys one with the MASH Forgejo role and registers the
+        # runner against it. Both live on the runner's own container network,
+        # because the registration container that the systemd unit runs joins
+        # only that network.
+        forgejo_runner_molecule_forgejo_identifier: forgejo-runner-default-forgejo
+
+        # The port that the helper Forgejo is published on inside the test
+        # container, so that verify.yml can reach its API from the host side.
+        forgejo_runner_molecule_forgejo_bind_port: 3000
+
+        forgejo_runner_molecule_forgejo_url: "http://{{ forgejo_runner_molecule_forgejo_identifier }}:3000"
+
+        # The administrator that verify.yml mints an API token for, in order to
+        # ask Forgejo about its runners and to drive the probe workflow.
+        forgejo_runner_molecule_admin_username: molecule
+        forgejo_runner_molecule_admin_password: molecule-admin-password
+        forgejo_runner_molecule_admin_email: molecule@example.com
+
+        # The repository that the probe workflow is pushed to.
+        forgejo_runner_molecule_repository_name: molecule-probe
+
+        # Deliberately not one of the runner's own default labels, so that
+        # seeing it come back from Forgejo proves that the configuration file
+        # this role writes is the one the running daemon read.
+        forgejo_runner_molecule_label: molecule-alpine
+
+        # A tiny image for the probe workflow's job container to run in.
+        forgejo_runner_molecule_job_image: alpine:3.22
+
+        # The string the probe workflow echoes, looked for in the job log.
+        forgejo_runner_molecule_job_marker: MOLECULE_JOB_RAN
+
+        # Variables for the helper Forgejo
+        forgejo_identifier: "{{ forgejo_runner_molecule_forgejo_identifier }}"
+        forgejo_uid: 1000
+        forgejo_gid: 1000
+        forgejo_scheme: http
+        forgejo_hostname: "{{ forgejo_runner_molecule_forgejo_identifier }}:3000"
+        forgejo_container_labels_traefik_enabled: false
+        forgejo_container_http_host_bind_port: "{{ forgejo_runner_molecule_forgejo_bind_port }}"
+        forgejo_database_type: sqlite
+
+        # Forgejo is deployed onto the runner's container network rather than
+        # its own, so that the runner, its registration container and the job
+        # containers it spawns can all resolve it by container name.
+        forgejo_container_network: forgejo-runner-default
+
+        # Without this, Forgejo comes up on its web installation wizard, where
+        # no API is routed and every page merely renders the install form.
+        # Locking the installation puts Forgejo into the state a real instance
+        # is in after setup, which is what a runner can register against.
+        forgejo_environment_variables_additional_variables: |
+          FORGEJO__security__INSTALL_LOCK=true
+
+        # Variables for Forgejo Runner
+        forgejo_runner_identifier: forgejo-runner-default
+        forgejo_runner_runner_name: molecule-runner
+        forgejo_runner_instance_url: "{{ forgejo_runner_molecule_forgejo_url }}"
+        forgejo_runner_labels:
+          - "{{ forgejo_runner_molecule_label }}:docker://{{ forgejo_runner_molecule_job_image }}"
+  env:
+    # Workaround for https://github.com/ansible/molecule/issues/4391
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
+verifier:
+  name: ansible

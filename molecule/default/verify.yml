@@ -1,0 +1,257 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify Forgejo Runner
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    forgejo_runner_molecule_api_base: "http://localhost:{{ forgejo_runner_molecule_forgejo_bind_port }}/api/v1"
+    forgejo_runner_molecule_repository_path: "{{ forgejo_runner_molecule_admin_username }}/{{ forgejo_runner_molecule_repository_name }}"
+  tasks:
+    # Role defaults are not in scope here, but the version that Renovate bumps
+    # lives in them and is what the running runner is checked against below.
+    - name: Load the Forgejo Runner role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: forgejo_runner_defaults
+
+    - name: Read the helper Forgejo administrator API token
+      ansible.builtin.slurp:
+        src: /root/forgejo-runner-molecule/admin-token
+      register: forgejo_runner_molecule_admin_token_file
+
+    - name: Set the helper Forgejo administrator API token
+      ansible.builtin.set_fact:
+        forgejo_runner_molecule_admin_token: "{{ forgejo_runner_molecule_admin_token_file.content | b64decode | trim }}"
+
+    - name: Wait for Forgejo Runner service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: forgejo-runner-default.service
+      register: forgejo_runner_service
+      until: forgejo_runner_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert Forgejo Runner service is active
+      ansible.builtin.assert:
+        that: forgejo_runner_service.status.ActiveState == 'active'
+        fail_msg: "forgejo-runner-default.service not active ({{ forgejo_runner_service.status.ActiveState }})"
+        success_msg: "forgejo-runner-default.service is active"
+
+    - name: Retrieve Forgejo Runner service log for debugging
+      when: forgejo_runner_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu forgejo-runner-default.service
+      changed_when: false
+
+    # `active` only means the `docker start --attach` process is alive. The
+    # daemon exits immediately on an unreadable configuration file, so the
+    # container has to be confirmed running in its own right.
+    - name: Inspect the Forgejo Runner container
+      ansible.builtin.command:
+        cmd: docker inspect forgejo-runner-default
+      register: forgejo_runner_container_inspect
+      changed_when: false
+
+    - name: Assert the Forgejo Runner container is running
+      ansible.builtin.assert:
+        that: (forgejo_runner_container_inspect.stdout | from_json | first).State.Running
+        fail_msg: "The Forgejo Runner container is not running: {{ (forgejo_runner_container_inspect.stdout | from_json | first).State }}"
+        success_msg: "The Forgejo Runner container is running"
+
+    # The version of the binary that is actually executing, as opposed to the
+    # image tag the role was asked to deploy.
+    - name: Query the version of the running Forgejo Runner
+      ansible.builtin.command:
+        cmd: docker exec forgejo-runner-default forgejo-runner --version
+      register: forgejo_runner_binary_version
+      changed_when: false
+
+    # The binary reports `forgejo-runner version v12.13.0`, while the variable
+    # that Renovate bumps carries no leading `v`.
+    - name: Assert the running Forgejo Runner is the version this role installs
+      ansible.builtin.assert:
+        that: >-
+          forgejo_runner_binary_version.stdout | trim | split(' ') | last
+          ==
+          'v' + forgejo_runner_defaults.forgejo_runner_version
+        fail_msg: >-
+          The runner reports '{{ forgejo_runner_binary_version.stdout | trim }}',
+          expected v{{ forgejo_runner_defaults.forgejo_runner_version }}
+        success_msg: "The running Forgejo Runner is {{ forgejo_runner_binary_version.stdout | trim }}"
+
+    # The real question a runner has to answer: does the Forgejo instance know
+    # about it, and does it consider it available? Forgejo never reports the
+    # word 'online' - a registered runner that is polling for work is `idle`,
+    # one that is executing a job is `active`, and `offline` is the state of a
+    # runner that registered but whose daemon is not talking to the instance.
+    - name: Wait for the runner to show up as available on Forgejo (up to 180s)
+      ansible.builtin.uri:
+        url: "{{ forgejo_runner_molecule_api_base }}/admin/actions/runners"
+        method: GET
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        status_code: [200, 401, 403, 404, 500, 502, 503]
+        return_content: true
+      register: forgejo_runner_registry
+      until: >-
+        forgejo_runner_registry.status == 200
+        and forgejo_runner_registry.json | length == 1
+        and forgejo_runner_registry.json[0].status in ['idle', 'active']
+      retries: 36
+      delay: 5
+
+    - name: Assert the runner registered itself with Forgejo and is available
+      ansible.builtin.assert:
+        that:
+          - forgejo_runner_registry.status == 200
+          - forgejo_runner_registry.json | length == 1
+          - forgejo_runner_registry.json[0].name == forgejo_runner_runner_name
+          - forgejo_runner_registry.json[0].status in ['idle', 'active']
+        fail_msg: "Forgejo does not report an available runner: {{ forgejo_runner_registry.json | default(forgejo_runner_registry.content | default('no response')) }}"
+        success_msg: >-
+          Forgejo reports runner '{{ forgejo_runner_registry.json[0].name }}'
+          as {{ forgejo_runner_registry.json[0].status }}
+
+    - name: Assert Forgejo sees the version of the runner this role installs
+      ansible.builtin.assert:
+        that: forgejo_runner_registry.json[0].version == 'v' + forgejo_runner_defaults.forgejo_runner_version
+        fail_msg: >-
+          Forgejo reports runner version {{ forgejo_runner_registry.json[0].version }},
+          expected v{{ forgejo_runner_defaults.forgejo_runner_version }}
+        success_msg: "Forgejo reports runner version {{ forgejo_runner_registry.json[0].version }}"
+
+    # The labels are declared nowhere but in the configuration file this role
+    # writes, and the runner only advertises them to Forgejo after reading that
+    # file. Seeing the scenario's label here proves the file reached the daemon.
+    - name: Assert the configured label reached the running runner
+      ansible.builtin.assert:
+        that: forgejo_runner_molecule_label in forgejo_runner_registry.json[0].labels
+        fail_msg: >-
+          The runner advertises {{ forgejo_runner_registry.json[0].labels }},
+          which does not include the configured '{{ forgejo_runner_molecule_label }}'
+        success_msg: "The runner advertises the configured label '{{ forgejo_runner_molecule_label }}'"
+
+    # Everything above proves the runner is registered and reachable. Whether it
+    # can actually run a job is a separate question, and the only way to answer
+    # it is to give it one.
+    - name: Create a repository to run a probe workflow in
+      ansible.builtin.uri:
+        url: "{{ forgejo_runner_molecule_api_base }}/user/repos"
+        method: POST
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        body_format: json
+        body:
+          name: "{{ forgejo_runner_molecule_repository_name }}"
+          default_branch: main
+          auto_init: true
+          private: false
+        status_code: [201, 409]
+      register: forgejo_runner_repository
+
+    - name: Assert the probe repository exists
+      ansible.builtin.assert:
+        that: forgejo_runner_repository.status in [201, 409]
+        fail_msg: "Could not create the probe repository ({{ forgejo_runner_repository.status }})"
+        success_msg: "The probe repository exists"
+
+    - name: Ensure Actions are enabled on the probe repository
+      ansible.builtin.uri:
+        url: "{{ forgejo_runner_molecule_api_base }}/repos/{{ forgejo_runner_molecule_repository_path }}"
+        method: PATCH
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        body_format: json
+        body:
+          has_actions: true
+        status_code: [200]
+
+    - name: Push a probe workflow to the repository
+      ansible.builtin.uri:
+        url: >-
+          {{ forgejo_runner_molecule_api_base }}/repos/{{ forgejo_runner_molecule_repository_path }}/contents/.forgejo/workflows/probe.yml
+        method: POST
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        body_format: json
+        body:
+          branch: main
+          message: Add a probe workflow
+          content: "{{ forgejo_runner_molecule_workflow | b64encode }}"
+        status_code: [201]
+      vars:
+        forgejo_runner_molecule_workflow: |
+          on: [push]
+          jobs:
+            probe:
+              runs-on: {{ forgejo_runner_molecule_label }}
+              steps:
+                - run: echo {{ forgejo_runner_molecule_job_marker }}
+
+    - name: Wait for the probe workflow run to finish (up to 5m)
+      ansible.builtin.uri:
+        url: "{{ forgejo_runner_molecule_api_base }}/repos/{{ forgejo_runner_molecule_repository_path }}/actions/tasks"
+        method: GET
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        status_code: [200, 404, 500, 502, 503]
+        return_content: true
+      register: forgejo_runner_workflow_runs
+      until: >-
+        forgejo_runner_workflow_runs.status == 200
+        and forgejo_runner_workflow_runs.json.total_count | default(0) > 0
+        and forgejo_runner_workflow_runs.json.workflow_runs[0].status not in ['waiting', 'running']
+      retries: 60
+      delay: 5
+
+    - name: Assert the probe workflow run succeeded
+      ansible.builtin.assert:
+        that: forgejo_runner_workflow_runs.json.workflow_runs[0].status == 'success'
+        fail_msg: >-
+          The probe workflow run ended as
+          '{{ forgejo_runner_workflow_runs.json.workflow_runs[0].status | default('never started') }}'
+        success_msg: "The probe workflow run succeeded"
+
+    - name: Retrieve the jobs of the probe workflow run
+      ansible.builtin.uri:
+        url: >-
+          {{ forgejo_runner_molecule_api_base }}/repos/{{ forgejo_runner_molecule_repository_path }}/actions/runs/{{ forgejo_runner_workflow_runs.json.workflow_runs[0].id }}/jobs
+        method: GET
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        status_code: [200]
+        return_content: true
+      register: forgejo_runner_workflow_jobs
+
+    - name: Retrieve the log of the probe workflow job
+      ansible.builtin.uri:
+        url: >-
+          {{ forgejo_runner_molecule_api_base }}/repos/{{ forgejo_runner_molecule_repository_path }}/actions/jobs/{{ forgejo_runner_workflow_jobs.json[0].id }}/logs
+        method: GET
+        headers:
+          Authorization: "token {{ forgejo_runner_molecule_admin_token }}"
+        status_code: [200]
+        return_content: true
+      register: forgejo_runner_workflow_job_log
+
+    # A run can be reported as successful without a step of ours ever having
+    # executed, so the marker the workflow echoes has to be in the log.
+    - name: Assert the probe job ran on this runner
+      ansible.builtin.assert:
+        that:
+          - forgejo_runner_molecule_job_marker in forgejo_runner_workflow_job_log.content
+          - forgejo_runner_registry.json[0].uuid in forgejo_runner_workflow_job_log.content
+        fail_msg: "The probe job log does not show the job running on this runner: {{ forgejo_runner_workflow_job_log.content }}"
+        success_msg: "The probe job executed on this runner and echoed its marker"
+
+    - name: Show Forgejo Runner verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Forgejo Runner systemd: {{ forgejo_runner_service.status.ActiveState }}"
+          - "Forgejo Runner version: {{ forgejo_runner_binary_version.stdout | trim }}"
+          - "Forgejo's view of the runner: {{ forgejo_runner_registry.json[0] }}"
+          - "Probe workflow run: {{ forgejo_runner_workflow_runs.json.workflow_runs[0].status }}"

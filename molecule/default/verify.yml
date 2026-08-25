@@ -54,7 +54,7 @@
     # container has to be confirmed running in its own right.
     - name: Inspect the Forgejo Runner container
       ansible.builtin.command:
-        cmd: docker inspect forgejo-runner-default
+        cmd: docker container inspect forgejo-runner-default
       register: forgejo_runner_container_inspect
       changed_when: false
 

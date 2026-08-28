@@ -24,29 +24,6 @@ Type=simple
 Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
 ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ forgejo_runner_container_cleanup_command | trim | replace("\n", " ") }}'
 
-ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ forgejo_runner_config_path }}/.runner ] && \
-      {{ devture_systemd_docker_base_host_command_docker }} run \
-      --rm \
-      --log-driver=none \
-      --user={{ forgejo_runner_uid }}:{{ forgejo_runner_gid }} \
-      --read-only \
-      --network={{ forgejo_runner_container_network }} \
-      --mount type=bind,src={{ forgejo_runner_config_path }},dst=/data \
-      {% for volume in forgejo_runner_container_additional_volumes %}
-      --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
-      {% endfor %}
-      --tmpfs=/tmp:rw,noexec,nosuid,size={{ forgejo_runner_container_tmpfs_tmp_size }} \
-      {% for arg in forgejo_runner_container_extra_arguments %}
-      {{ arg }} \
-      {% endfor %}
-      {{ forgejo_runner_container_image }} \
-      forgejo-runner register \
-      --no-interactive \
-      --name {{ forgejo_runner_runner_name }} \
-      --instance {{ forgejo_runner_instance_url }} \
-      --token {{ forgejo_runner_registration_token }} \
-      --config /data/config.yaml'
-
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --rm \
       --name={{ forgejo_runner_identifier }} \

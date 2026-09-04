@@ -250,10 +250,10 @@
         fail_msg: "The probe job log does not show the job running on this runner: {{ forgejo_runner_workflow_job_log.content }}"
         success_msg: "The probe job executed on this runner and echoed its marker"
 
-    - name: Show Forgejo Runner verification summary
+    - name: Show the Forgejo Runner verification summary
       ansible.builtin.debug:
         msg:
           - "Forgejo Runner systemd: {{ forgejo_runner_service.status.ActiveState }}"
           - "Forgejo Runner version: {{ forgejo_runner_binary_version.stdout | trim }}"
+          - "Forgejo Runner probe workflow run: {{ forgejo_runner_workflow_runs.json.workflow_runs[0].status }}"
           - "Forgejo's view of the runner: {{ forgejo_runner_registry.json[0] }}"
-          - "Probe workflow run: {{ forgejo_runner_workflow_runs.json.workflow_runs[0].status }}"

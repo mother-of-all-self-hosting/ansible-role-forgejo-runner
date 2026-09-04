@@ -13,9 +13,10 @@
     forgejo_runner_molecule_api_base: "http://localhost:{{ forgejo_runner_molecule_forgejo_bind_port }}/api/v1"
     forgejo_runner_molecule_repository_path: "{{ forgejo_runner_molecule_admin_username }}/{{ forgejo_runner_molecule_repository_name }}"
   tasks:
-    # Role defaults are not in scope here, but the version that Renovate bumps
-    # lives in them and is what the running runner is checked against below.
-    - name: Load the Forgejo Runner role defaults
+    # The role is not included in this playbook, so its defaults are not in
+    # scope. Reading defaults/main.yml directly ties the version assertion
+    # below.
+    - name: Load the role defaults
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: forgejo_runner_defaults

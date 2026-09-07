@@ -81,10 +81,8 @@
           forgejo_runner_binary_version.stdout | trim | split(' ') | last
           ==
           'v' + forgejo_runner_defaults.forgejo_runner_version
-        fail_msg: >-
-          The runner reports '{{ forgejo_runner_binary_version.stdout | trim }}',
-          expected v{{ forgejo_runner_defaults.forgejo_runner_version }}
-        success_msg: "The running Forgejo Runner is {{ forgejo_runner_binary_version.stdout | trim }}"
+        fail_msg: "Forgejo Runner reports {{ forgejo_runner_binary_version.stdout | trim | default('none') }}, expected {{ forgejo_runner_defaults.forgejo_runner_version }}"
+        success_msg: "Forgejo Runner reports {{ forgejo_runner_binary_version.stdout | trim }}"
 
     # The real question a runner has to answer: does the Forgejo instance know
     # about it, and does it consider it available? Forgejo never reports the

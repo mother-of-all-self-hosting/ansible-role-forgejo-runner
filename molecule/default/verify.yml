@@ -30,21 +30,27 @@
       ansible.builtin.set_fact:
         forgejo_runner_molecule_admin_token: "{{ forgejo_runner_molecule_admin_token_file.content | b64decode | trim }}"
 
-    - name: Wait for Forgejo Runner service to become active (up to 180s)
-      ansible.builtin.systemd:
+    - name: Wait for the Forgejo Runner systemd service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: forgejo-runner-default.service
       register: forgejo_runner_service
       until: forgejo_runner_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    - name: Assert Forgejo Runner service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the Forgejo Runner systemd service is active
       ansible.builtin.assert:
         that: forgejo_runner_service.status.ActiveState == 'active'
-        fail_msg: "forgejo-runner-default.service not active ({{ forgejo_runner_service.status.ActiveState }})"
+        fail_msg: "forgejo-runner-default.service is not active ({{ forgejo_runner_service.status.ActiveState }})"
         success_msg: "forgejo-runner-default.service is active"
 
-    - name: Retrieve Forgejo Runner service log for debugging
+    - name: Retrieve the Forgejo Runner systemd service log for debugging
       when: forgejo_runner_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu forgejo-runner-default.service

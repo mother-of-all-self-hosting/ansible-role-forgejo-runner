@@ -56,13 +56,13 @@
     - name: Inspect the Forgejo Runner container
       ansible.builtin.command:
         cmd: docker container inspect forgejo-runner-default
-      register: forgejo_runner_container_inspect
+      register: forgejo_runner_container_raw
       changed_when: false
 
     - name: Assert the Forgejo Runner container is running
       ansible.builtin.assert:
-        that: (forgejo_runner_container_inspect.stdout | from_json | first).State.Running
-        fail_msg: "The Forgejo Runner container is not running: {{ (forgejo_runner_container_inspect.stdout | from_json | first).State }}"
+        that: (forgejo_runner_container_raw.stdout | from_json | first).State.Running
+        fail_msg: "The Forgejo Runner container is not running: {{ (forgejo_runner_container_raw.stdout | from_json | first).State }}"
         success_msg: "The Forgejo Runner container is running"
 
     # The version of the binary that is actually executing, as opposed to the

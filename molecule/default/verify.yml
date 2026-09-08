@@ -53,7 +53,7 @@
     - name: Retrieve the Forgejo Runner systemd service log for debugging
       when: forgejo_runner_debug_service_enabled | bool
       ansible.builtin.command:
-        cmd: journalctl -xeu forgejo-runner-default.service
+        cmd: journalctl --no-pager --output=cat --unit=forgejo-runner-default.service
       changed_when: false
 
     # `active` only means the `docker start --attach` process is alive. The

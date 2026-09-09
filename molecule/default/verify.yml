@@ -13,6 +13,8 @@
     forgejo_runner_molecule_api_base: "http://localhost:{{ forgejo_runner_molecule_forgejo_bind_port }}/api/v1"
     forgejo_runner_molecule_repository_path: "{{ forgejo_runner_molecule_admin_username }}/{{ forgejo_runner_molecule_repository_name }}"
   tasks:
+    - name: Verify that Forgejo Runner works
+      block:
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -262,3 +264,19 @@
           - "Forgejo Runner version: {{ forgejo_runner_version_reported.stdout | trim }}"
           - "Forgejo Runner probe workflow run: {{ forgejo_runner_workflow_runs.json.workflow_runs[0].status }}"
           - "Forgejo's view of the runner: {{ forgejo_runner_registry.json[0] }}"
+
+      rescue:
+        # Whatever went wrong, the reason is almost always in the systemd service log.
+        - name: Retrieve the Forgejo Runner systemd service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=forgejo-runner.service
+          register: forgejo_runner_service_log
+          changed_when: false
+
+        - name: Show the Forgejo Runner systemd service log
+          ansible.builtin.debug:
+            var: forgejo_runner_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "Forgejo Runner verification failed. The systemd service log is printed above."

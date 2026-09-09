@@ -44,5 +44,5 @@
 
     - name: Ensure Forgejo Runner systemd service is started
       ansible.builtin.systemd_service:
-        name: forgejo-runner-default.service
+        name: forgejo-runner.service
         state: started

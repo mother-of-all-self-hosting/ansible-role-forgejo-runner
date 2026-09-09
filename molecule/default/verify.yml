@@ -32,7 +32,7 @@
 
     - name: Wait for the Forgejo Runner systemd service to become active (up to 180s)
       ansible.builtin.systemd_service:
-        name: forgejo-runner-default.service
+        name: forgejo-runner.service
       register: forgejo_runner_service
       until: forgejo_runner_service.status.ActiveState == 'active'
       retries: 36
@@ -47,13 +47,13 @@
     - name: Assert the Forgejo Runner systemd service is active
       ansible.builtin.assert:
         that: forgejo_runner_service.status.ActiveState == 'active'
-        fail_msg: "forgejo-runner-default.service is not active ({{ forgejo_runner_service.status.ActiveState }})"
-        success_msg: "forgejo-runner-default.service is active"
+        fail_msg: "forgejo-runner.service is not active ({{ forgejo_runner_service.status.ActiveState }})"
+        success_msg: "forgejo-runner.service is active"
 
     - name: Retrieve the Forgejo Runner systemd service log for debugging
       when: forgejo_runner_debug_service_enabled | bool
       ansible.builtin.command:
-        cmd: journalctl --no-pager --output=cat --unit=forgejo-runner-default.service
+        cmd: journalctl --no-pager --output=cat --unit=forgejo-runner.service
       changed_when: false
 
     # `active` only means the `docker start --attach` process is alive. The
@@ -61,7 +61,7 @@
     # container has to be confirmed running in its own right.
     - name: Inspect the Forgejo Runner container
       ansible.builtin.command:
-        cmd: docker container inspect forgejo-runner-default
+        cmd: docker container inspect forgejo-runner
       register: forgejo_runner_container_raw
       changed_when: false
 
@@ -75,7 +75,7 @@
     # image tag the role was asked to deploy.
     - name: Query the version of the running Forgejo Runner
       ansible.builtin.command:
-        cmd: docker exec forgejo-runner-default forgejo-runner --version
+        cmd: docker exec forgejo-runner forgejo-runner --version
       register: forgejo_runner_version_reported
       changed_when: false
 

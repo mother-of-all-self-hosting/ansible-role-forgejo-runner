@@ -37,7 +37,7 @@ provisioner:
         # runner against it. Both live on the runner's own container network,
         # because the registration container that the systemd unit runs joins
         # only that network.
-        forgejo_runner_molecule_forgejo_identifier: forgejo-runner-default-forgejo
+        forgejo_runner_molecule_forgejo_identifier: forgejo-runner-forgejo
 
         # The port that the helper Forgejo is published on inside the test
         # container, so that verify.yml can reach its API from the host side.
@@ -78,7 +78,7 @@ provisioner:
         # Forgejo is deployed onto the runner's container network rather than
         # its own, so that the runner, its registration container and the job
         # containers it spawns can all resolve it by container name.
-        forgejo_container_network: forgejo-runner-default
+        forgejo_container_network: forgejo-runner
 
         # Without this, Forgejo comes up on its web installation wizard, where
         # no API is routed and every page merely renders the install form.
@@ -88,7 +88,7 @@ provisioner:
           FORGEJO__security__INSTALL_LOCK=true
 
         # Variables for Forgejo Runner
-        forgejo_runner_identifier: forgejo-runner-default
+        forgejo_runner_identifier: forgejo-runner
         forgejo_runner_runner_name: molecule-runner
         forgejo_runner_instance_url: "{{ forgejo_runner_molecule_forgejo_url }}"
         forgejo_runner_labels:

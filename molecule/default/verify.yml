@@ -23,15 +23,6 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: forgejo_runner_defaults
 
-        - name: Read the helper Forgejo administrator API token
-          ansible.builtin.slurp:
-            src: /root/forgejo-runner-molecule/admin-token
-          register: forgejo_runner_molecule_admin_token_file
-
-        - name: Set the helper Forgejo administrator API token
-          ansible.builtin.set_fact:
-            forgejo_runner_molecule_admin_token: "{{ forgejo_runner_molecule_admin_token_file.content | b64decode | trim }}"
-
         - name: Wait for the Forgejo Runner systemd service to become active (up to 180s)
           ansible.builtin.systemd_service:
             name: forgejo-runner.service
@@ -91,6 +82,15 @@
               'v' + forgejo_runner_defaults.forgejo_runner_version
             fail_msg: "Forgejo Runner reports {{ forgejo_runner_version_reported.stdout | trim | default('none') }}, expected {{ forgejo_runner_defaults.forgejo_runner_version }}"
             success_msg: "Forgejo Runner reports {{ forgejo_runner_version_reported.stdout | trim }}"
+
+        - name: Read the helper Forgejo administrator API token
+          ansible.builtin.slurp:
+            src: /root/forgejo-runner-molecule/admin-token
+          register: forgejo_runner_molecule_admin_token_file
+
+        - name: Set the helper Forgejo administrator API token
+          ansible.builtin.set_fact:
+            forgejo_runner_molecule_admin_token: "{{ forgejo_runner_molecule_admin_token_file.content | b64decode | trim }}"
 
         # The real question a runner has to answer: does the Forgejo instance know
         # about it, and does it consider it available? Forgejo never reports the

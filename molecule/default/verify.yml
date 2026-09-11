@@ -9,9 +9,14 @@
   hosts: all
   become: true
   gather_facts: false
+
   vars:
     forgejo_runner_molecule_api_base: "http://localhost:{{ forgejo_runner_molecule_forgejo_bind_port }}/api/v1"
     forgejo_runner_molecule_repository_path: "{{ forgejo_runner_molecule_admin_username }}/{{ forgejo_runner_molecule_repository_name }}"
+
+    forgejo_runner_verify_units:
+      - forgejo-runner.service
+
   tasks:
     - name: Verify that Forgejo Runner works
       block:
@@ -23,13 +28,14 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: forgejo_runner_defaults
 
-        - name: Wait for the Forgejo Runner systemd service to become active (up to 180s)
+        - name: Wait for the Forgejo Runner systemd services to become active (up to 180s each)
           ansible.builtin.systemd_service:
-            name: forgejo-runner.service
-          register: forgejo_runner_service
-          until: forgejo_runner_service.status.ActiveState == 'active'
+            name: "{{ item }}"
+          register: forgejo_runner_services
+          until: forgejo_runner_services.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          loop: "{{ forgejo_runner_verify_units }}"
           # So that giving up is reported by the assertion below rather than as a
           # wall of systemd unit properties.
           failed_when: false
@@ -37,17 +43,20 @@
         # `Restart=always` in the systemd unit means that even a container which crashes
         # and gets restarted reads as active here, so this is a precondition rather than
         # a result.
-        - name: Assert the Forgejo Runner systemd service is active
+        - name: Assert the Forgejo Runner systemd services are active
           ansible.builtin.assert:
-            that: forgejo_runner_service.status.ActiveState == 'active'
-            fail_msg: "forgejo-runner.service is not active ({{ forgejo_runner_service.status.ActiveState }})"
-            success_msg: "forgejo-runner.service is active"
+            that: forgejo_runner_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+            fail_msg: >-
+              Not every service is active:
+              {{ dict(forgejo_runner_verify_units | zip(forgejo_runner_services.results | map(attribute='status.ActiveState'))) }}
+            success_msg: "Forgejo Runner systemd service is active"
 
-        - name: Retrieve the Forgejo Runner systemd service log for debugging
+        - name: Retrieve the Forgejo Runner systemd services log for debugging
           when: forgejo_runner_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl --no-pager --output=cat --unit=forgejo-runner.service
+            cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
           changed_when: false
+          loop: "{{ forgejo_runner_verify_units }}"
 
         # `active` only means the `docker start --attach` process is alive. The
         # daemon exits immediately on an unreadable configuration file, so the
@@ -260,7 +269,7 @@
         - name: Show the Forgejo Runner verification summary
           ansible.builtin.debug:
             msg:
-              - "Forgejo Runner systemd: {{ forgejo_runner_service.status.ActiveState }}"
+              - "Forgejo Runner systemd: {% for unit, state in forgejo_runner_verify_units | zip(forgejo_runner_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "Forgejo Runner version: {{ forgejo_runner_version_reported.stdout | trim }}"
               - "Forgejo Runner probe workflow run: {{ forgejo_runner_workflow_runs.json.workflow_runs[0].status }}"
               - "Forgejo's view of the runner: {{ forgejo_runner_registry.json[0] }}"

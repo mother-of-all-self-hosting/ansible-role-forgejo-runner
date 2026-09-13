@@ -31,6 +31,7 @@ provisioner:
       all:
         # Helper variables
         forgejo_runner_debug_service_enabled: false
+        forgejo_runner_restarts_check_enabled: true
 
         # A runner is only meaningful against a Forgejo instance, so the
         # scenario deploys one with the MASH Forgejo role and registers the

@@ -11,16 +11,18 @@
   gather_facts: true
   tasks:
     # Minted by prepare.yml against the helper Forgejo. Read from disk rather
-    # than re-minted, so that the value (which ends up in the systemd unit) is
-    # the same on every converge run and the idempotence check stays honest.
-    - name: Read the Forgejo Runner registration token
+    # than re-registered, so that the value (which ends up in the systemd
+    # unit) is the same on every converge run and the idempotence check stays
+    # honest.
+    - name: Read the Forgejo Runner connection uuid
       ansible.builtin.slurp:
-        src: /root/forgejo-runner-molecule/registration-token
-      register: forgejo_runner_molecule_registration_token_file
+        src: /root/forgejo-runner-molecule/connection-uuid
+      register: forgejo_runner_molecule_connection_uuid_file
 
-    - name: Set the Forgejo Runner registration token
+    - name: Set the Forgejo Runner connection facts
       ansible.builtin.set_fact:
-        forgejo_runner_registration_token: "{{ forgejo_runner_molecule_registration_token_file.content | b64decode | trim }}"
+        forgejo_runner_connection_uuid: "{{ forgejo_runner_molecule_connection_uuid_file.content | b64decode | trim }}"
+        forgejo_runner_registration_token: "{{ forgejo_runner_molecule_connection_secret }}"
 
     - name: Include roles for Forgejo Runner Molecule tests
       ansible.builtin.include_role:

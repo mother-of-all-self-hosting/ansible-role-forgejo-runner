@@ -131,6 +131,27 @@
             dest: /root/forgejo-runner-molecule/admin-token
             mode: "0600"
 
+    # The secret is generated once and kept on the instance rather than being
+    # committed, so that it is the same on every converge run: it ends up in
+    # the systemd unit, and a value that changed per run would break
+    # Molecule's idempotence check. It must be exactly 40 hex characters.
+    - name: Check whether a Forgejo Runner connection secret has been generated already
+      ansible.builtin.stat:
+        path: /root/forgejo-runner-molecule/connection-secret
+      register: forgejo_runner_molecule_connection_secret_stat
+
+    - name: Generate and persist a Forgejo Runner connection secret
+      when: not forgejo_runner_molecule_connection_secret_stat.stat.exists
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.password', '/dev/null length=40 chars=0123456789abcdef') }}"
+        dest: /root/forgejo-runner-molecule/connection-secret
+        mode: "0600"
+
+    - name: Read the Forgejo Runner connection secret
+      ansible.builtin.slurp:
+        src: /root/forgejo-runner-molecule/connection-secret
+      register: forgejo_runner_molecule_connection_secret_file
+
     - name: Check whether a Forgejo Runner connection has been registered already
       ansible.builtin.stat:
         path: /root/forgejo-runner-molecule/connection-uuid
@@ -148,7 +169,7 @@
             cmd: >-
               docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
               forgejo forgejo-cli actions register
-              --secret {{ forgejo_runner_molecule_connection_secret }}
+              --secret {{ forgejo_runner_molecule_connection_secret_file.content | b64decode | trim }}
               --name {{ forgejo_runner_molecule_runner_name }}
           register: forgejo_runner_molecule_connection_registration
           changed_when: true

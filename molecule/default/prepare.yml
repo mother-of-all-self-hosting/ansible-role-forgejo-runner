@@ -149,7 +149,7 @@
               docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
               forgejo forgejo-cli actions register
               --secret {{ forgejo_runner_molecule_connection_secret }}
-              --name {{ forgejo_runner_runner_name }}
+              --name {{ forgejo_runner_molecule_runner_name }}
           register: forgejo_runner_molecule_connection_registration
           changed_when: true
 

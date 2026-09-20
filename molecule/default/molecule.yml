@@ -90,7 +90,7 @@ provisioner:
 
         # Variables for Forgejo Runner
         forgejo_runner_identifier: forgejo-runner
-        forgejo_runner_runner_name: molecule-runner
+        forgejo_runner_molecule_runner_name: molecule-runner
 
         # The role's server.connections flow (see templates/config.yaml.j2)
         # authenticates with a uuid+token pair rather than a single
@@ -100,7 +100,9 @@ provisioner:
         # `--secret` given to `forgejo forgejo-cli actions register` and
         # `forgejo_runner_registration_token` in converge.yml. A value that
         # changed per run would re-render the systemd unit and break
-        # Molecule's idempotence check.
+        # Molecule's idempotence check. This is a throwaway test value that
+        # only works against the disposable helper Forgejo; it is not a real
+        # credential.
         forgejo_runner_molecule_connection_secret: 3abdc346c779e9359da2d595fe96ff8dc9b6cfc8
 
         forgejo_runner_instance_url: "{{ forgejo_runner_molecule_forgejo_url }}"

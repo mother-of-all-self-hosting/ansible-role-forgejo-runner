@@ -131,24 +131,51 @@
             dest: /root/forgejo-runner-molecule/admin-token
             mode: "0600"
 
-    - name: Check whether a Forgejo Runner registration token has been minted already
+    # The secret is generated once and kept on the instance rather than being
+    # committed, so that it is the same on every converge run: it ends up in
+    # the systemd unit, and a value that changed per run would break
+    # Molecule's idempotence check. It must be exactly 40 hex characters.
+    - name: Check whether a Forgejo Runner connection secret has been generated already
       ansible.builtin.stat:
-        path: /root/forgejo-runner-molecule/registration-token
-      register: forgejo_runner_molecule_registration_token_stat
+        path: /root/forgejo-runner-molecule/connection-secret
+      register: forgejo_runner_molecule_connection_secret_stat
 
-    - name: Mint a Forgejo Runner registration token
-      when: not forgejo_runner_molecule_registration_token_stat.stat.exists
+    - name: Generate and persist a Forgejo Runner connection secret
+      when: not forgejo_runner_molecule_connection_secret_stat.stat.exists
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.password', '/dev/null length=40 chars=0123456789abcdef') }}"
+        dest: /root/forgejo-runner-molecule/connection-secret
+        mode: "0600"
+
+    - name: Read the Forgejo Runner connection secret
+      ansible.builtin.slurp:
+        src: /root/forgejo-runner-molecule/connection-secret
+      register: forgejo_runner_molecule_connection_secret_file
+
+    - name: Check whether a Forgejo Runner connection has been registered already
+      ansible.builtin.stat:
+        path: /root/forgejo-runner-molecule/connection-uuid
+      register: forgejo_runner_molecule_connection_uuid_stat
+
+    # `forgejo forgejo-cli actions register` is the offline counterpart to the
+    # web UI's "Create new runner" dialog: given a secret we choose, it mints
+    # a connection (uuid + that same secret as its token) for the role's
+    # server.connections config, and prints the uuid on stdout.
+    - name: Register a Forgejo Runner connection
+      when: not forgejo_runner_molecule_connection_uuid_stat.stat.exists
       block:
-        - name: Generate a Forgejo Runner registration token
+        - name: Register the Forgejo Runner connection with the helper Forgejo
           ansible.builtin.command:
             cmd: >-
               docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
-              forgejo actions generate-runner-token
-          register: forgejo_runner_molecule_registration_token_creation
+              forgejo forgejo-cli actions register
+              --secret {{ forgejo_runner_molecule_connection_secret_file.content | b64decode | trim }}
+              --name {{ forgejo_runner_molecule_runner_name }}
+          register: forgejo_runner_molecule_connection_registration
           changed_when: true
 
-        - name: Persist the Forgejo Runner registration token
+        - name: Persist the Forgejo Runner connection uuid
           ansible.builtin.copy:
-            content: "{{ forgejo_runner_molecule_registration_token_creation.stdout | trim }}"
-            dest: /root/forgejo-runner-molecule/registration-token
+            content: "{{ forgejo_runner_molecule_connection_registration.stdout | trim }}"
+            dest: /root/forgejo-runner-molecule/connection-uuid
             mode: "0600"

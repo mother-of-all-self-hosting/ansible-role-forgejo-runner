@@ -12,6 +12,9 @@
   with_items:
     - { "old": "forgejo_runner_docker_socket_path", "new": "forgejo_runner_docker_endpoint" }
     - { "old": "forgejo_runner_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
+    - { "old": "forgejo_runner_runner_name", "new": "<removed> (the runner name is set in Forgejo when creating the runner; see `forgejo_runner_connection_name` for the label used in the configuration file)" }
+    - { "old": "forgejo_runner_process_register_extra_arguments", "new": "<removed> (the `forgejo-runner register` step no longer exists; use `forgejo_runner_process_daemon_extra_arguments_custom` for the daemon)" }
+    - { "old": "forgejo_runner_process_register_extra_arguments_custom", "new": "<removed> (the `forgejo-runner register` step no longer exists; use `forgejo_runner_process_daemon_extra_arguments_custom` for the daemon)" }
 
 - name: Fail if Forgejo Runner docker endpoint syntax invalid
   ansible.builtin.fail:
@@ -30,7 +33,7 @@
     - forgejo_runner_gid
     - forgejo_runner_container_network
     - forgejo_runner_docker_endpoint
-    - forgejo_runner_runner_name
     - forgejo_runner_instance_url
+    - forgejo_runner_connection_uuid
     - forgejo_runner_registration_token
     - forgejo_runner_capacity

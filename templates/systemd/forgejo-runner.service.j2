@@ -44,7 +44,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {{ arg }} \
       {% endfor %}
       {{ forgejo_runner_container_image }} \
-      forgejo-runner daemon --config /data/config.yaml
+      {% for arg in forgejo_runner_process_daemon_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
 
 {% for network in forgejo_runner_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ forgejo_runner_identifier }}

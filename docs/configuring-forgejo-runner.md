@@ -90,7 +90,7 @@ forgejo_runner_labels:
   - ubuntu-22.04:docker://node:20-bullseye
 ```
 
-Since the labels are an important aspect of the runner, they should be carefully chosen. Read [the official documentation](https://forgejo.org/docs/latest/admin/actions/#choosing-labels) for more information.
+Since the labels are an important aspect of the runner, they should be carefully chosen. Read [the official documentation](https://forgejo.org/docs/latest/admin/actions/configuration/#choosing-labels) for more information.
 
 ### Set the runner's name
 

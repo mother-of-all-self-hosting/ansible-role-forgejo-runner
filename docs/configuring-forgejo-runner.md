@@ -94,7 +94,7 @@ Since the labels are an important aspect of the runner, they should be carefully
 
 ### Set the runner's name
 
-It is also necesary to set the runner's name by adding the following configuration to your `vars.yml` file:
+It is also necessary to set the runner's name by adding the following configuration to your `vars.yml` file:
 
 ```yaml
 forgejo_runner_runner_name: YOUR_RUNNER_NAME_HERE

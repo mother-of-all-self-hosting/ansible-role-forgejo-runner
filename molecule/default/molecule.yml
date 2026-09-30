@@ -90,7 +90,13 @@ provisioner:
 
         # Variables for Forgejo Runner
         forgejo_runner_identifier: forgejo-runner
-        forgejo_runner_runner_name: molecule-runner
+        forgejo_runner_molecule_runner_name: molecule-runner
+
+        # The connection uuid and secret (`forgejo_runner_connection_uuid` and
+        # `forgejo_runner_registration_token`) are not defined here: prepare.yml
+        # generates the secret, registers it with the helper Forgejo, and
+        # stores both on the instance for converge.yml to read.
+
         forgejo_runner_instance_url: "{{ forgejo_runner_molecule_forgejo_url }}"
         forgejo_runner_labels:
           - "{{ forgejo_runner_molecule_label }}:docker://{{ forgejo_runner_molecule_job_image }}"

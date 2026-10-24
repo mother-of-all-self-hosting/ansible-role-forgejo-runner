@@ -127,7 +127,7 @@
             that:
               - forgejo_runner_registry.status == 200
               - forgejo_runner_registry.json | length == 1
-              - forgejo_runner_registry.json[0].name == forgejo_runner_runner_name
+              - forgejo_runner_registry.json[0].name == forgejo_runner_molecule_runner_name
               - forgejo_runner_registry.json[0].status in ['idle', 'active']
             fail_msg: "Forgejo does not report an available runner: {{ forgejo_runner_registry.json | default(forgejo_runner_registry.content | default('no response')) }}"
             success_msg: >-

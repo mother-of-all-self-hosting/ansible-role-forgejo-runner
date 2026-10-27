@@ -5,7 +5,7 @@ roles:
     version: 8.0.0
     name: ansible-role-docker
   - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-forgejo.git
-    version: v17.0.0-1
+    version: v17.0.1-0
     name: ansible-role-forgejo
   - src: git+https://github.com/devture/com.devture.ansible.role.playbook_help.git
     version: main

@@ -40,6 +40,15 @@ provisioner:
         forgejo_runner_debug_service_enabled: false
         forgejo_runner_restarts_check_enabled: true
 
+        # How the runner gets onto the helper Forgejo: `registration` (it registers itself with
+        # a registration token) or `connections` (it connects as a runner which already exists
+        # on Forgejo, via `forgejo_runner_connections`). The `connections` scenario overrides it.
+        forgejo_runner_molecule_mode: registration
+
+        # The name the `connections` mode pre-registers its runner with. It is never given to
+        # the role, so seeing it on Forgejo proves the runner connected as that runner.
+        forgejo_runner_molecule_preregistered_runner_name: molecule-preregistered-runner
+
         # A runner is only meaningful against a Forgejo instance, so the
         # scenario deploys one with the MASH Forgejo role and registers the
         # runner against it. Both live on the runner's own container network,

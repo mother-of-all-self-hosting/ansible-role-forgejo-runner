@@ -128,24 +128,79 @@
             dest: /root/forgejo-runner-molecule/admin-token
             mode: "0600"
 
-    - name: Check whether a Forgejo Runner registration token has been minted already
-      ansible.builtin.stat:
-        path: /root/forgejo-runner-molecule/registration-token
-      register: forgejo_runner_molecule_registration_token_stat
-
     - name: Mint a Forgejo Runner registration token
-      when: not forgejo_runner_molecule_registration_token_stat.stat.exists
+      when: forgejo_runner_molecule_mode == 'registration'
       block:
-        - name: Generate a Forgejo Runner registration token
-          ansible.builtin.command:
-            cmd: >-
-              docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
-              forgejo actions generate-runner-token
-          register: forgejo_runner_molecule_registration_token_creation
-          changed_when: true
+        - name: Check whether a Forgejo Runner registration token has been minted already
+          ansible.builtin.stat:
+            path: /root/forgejo-runner-molecule/registration-token
+          register: forgejo_runner_molecule_registration_token_stat
 
-        - name: Persist the Forgejo Runner registration token
-          ansible.builtin.copy:
-            content: "{{ forgejo_runner_molecule_registration_token_creation.stdout | trim }}"
-            dest: /root/forgejo-runner-molecule/registration-token
-            mode: "0600"
+        - name: Mint a Forgejo Runner registration token
+          when: not forgejo_runner_molecule_registration_token_stat.stat.exists
+          block:
+            - name: Generate a Forgejo Runner registration token
+              ansible.builtin.command:
+                cmd: >-
+                  docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
+                  forgejo actions generate-runner-token
+              register: forgejo_runner_molecule_registration_token_creation
+              changed_when: true
+
+            - name: Persist the Forgejo Runner registration token
+              ansible.builtin.copy:
+                content: "{{ forgejo_runner_molecule_registration_token_creation.stdout | trim }}"
+                dest: /root/forgejo-runner-molecule/registration-token
+                mode: "0600"
+
+    # What creating a runner in Forgejo's web interface does: the runner exists on Forgejo
+    # before Forgejo Runner ever connects, and is known by a UUID and a token. Forgejo derives
+    # both from the secret given here (the UUID from its first 16 characters).
+    # Disposable test credentials, but kept out of verbose and diff output all the same.
+    - name: Pre-register a Forgejo Runner runner on the helper Forgejo
+      when: forgejo_runner_molecule_mode == 'connections'
+      no_log: true
+      diff: false
+      block:
+        - name: Check whether a Forgejo Runner runner has been pre-registered already
+          ansible.builtin.stat:
+            path: /root/forgejo-runner-molecule/runner-token
+          register: forgejo_runner_molecule_runner_token_stat
+
+        - name: Pre-register a Forgejo Runner runner
+          when: not forgejo_runner_molecule_runner_token_stat.stat.exists
+          block:
+            - name: Generate a Forgejo Runner runner secret
+              ansible.builtin.command:
+                cmd: openssl rand -hex 20
+              register: forgejo_runner_molecule_runner_secret
+              changed_when: false
+
+            - name: Register the runner on the helper Forgejo
+              ansible.builtin.command:
+                cmd: >-
+                  docker exec {{ forgejo_runner_molecule_forgejo_identifier }}
+                  forgejo forgejo-cli actions register
+                  --secret {{ forgejo_runner_molecule_runner_secret.stdout }}
+                  --name {{ forgejo_runner_molecule_preregistered_runner_name }}
+              changed_when: true
+
+            - name: Derive the runner's UUID from its secret
+              ansible.builtin.command:
+                cmd: >-
+                  python3 -c "import sys, uuid; print(uuid.UUID(bytes=sys.argv[1][:16].encode()))"
+                  {{ forgejo_runner_molecule_runner_secret.stdout }}
+              register: forgejo_runner_molecule_runner_uuid
+              changed_when: false
+
+            - name: Persist the runner's UUID
+              ansible.builtin.copy:
+                content: "{{ forgejo_runner_molecule_runner_uuid.stdout | trim }}"
+                dest: /root/forgejo-runner-molecule/runner-uuid
+                mode: "0600"
+
+            - name: Persist the runner's token
+              ansible.builtin.copy:
+                content: "{{ forgejo_runner_molecule_runner_secret.stdout | trim }}"
+                dest: /root/forgejo-runner-molecule/runner-token
+                mode: "0600"

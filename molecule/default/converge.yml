@@ -13,14 +13,36 @@
     # Minted by prepare.yml against the helper Forgejo. Read from disk rather
     # than re-minted, so that the value (which ends up in the systemd unit) is
     # the same on every converge run and the idempotence check stays honest.
-    - name: Read the Forgejo Runner registration token
-      ansible.builtin.slurp:
-        src: /root/forgejo-runner-molecule/registration-token
-      register: forgejo_runner_molecule_registration_token_file
+    - name: Configure the Forgejo Runner registration token
+      when: forgejo_runner_molecule_mode == 'registration'
+      block:
+        - name: Read the Forgejo Runner registration token
+          ansible.builtin.slurp:
+            src: /root/forgejo-runner-molecule/registration-token
+          register: forgejo_runner_molecule_registration_token_file
 
-    - name: Set the Forgejo Runner registration token
-      ansible.builtin.set_fact:
-        forgejo_runner_registration_token: "{{ forgejo_runner_molecule_registration_token_file.content | b64decode | trim }}"
+        - name: Set the Forgejo Runner registration token
+          ansible.builtin.set_fact:
+            forgejo_runner_registration_token: "{{ forgejo_runner_molecule_registration_token_file.content | b64decode | trim }}"
+
+    # The runner pre-registered by prepare.yml, as one created in Forgejo's web interface.
+    - name: Configure the Forgejo Runner connection
+      when: forgejo_runner_molecule_mode == 'connections'
+      block:
+        - name: Read the pre-registered runner's UUID and token
+          ansible.builtin.slurp:
+            src: "/root/forgejo-runner-molecule/{{ item }}"
+          loop: [runner-uuid, runner-token]
+          register: forgejo_runner_molecule_runner_files
+          no_log: true
+
+        - name: Set the Forgejo Runner connection
+          ansible.builtin.set_fact:
+            forgejo_runner_connections:
+              - name: molecule
+                uuid: "{{ forgejo_runner_molecule_runner_files.results[0].content | b64decode | trim }}"
+                token: "{{ forgejo_runner_molecule_runner_files.results[1].content | b64decode | trim }}"
+          no_log: true
 
     - name: Include roles for Forgejo Runner Molecule tests
       ansible.builtin.include_role:

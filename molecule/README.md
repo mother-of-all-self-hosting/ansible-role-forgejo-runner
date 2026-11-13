@@ -51,6 +51,10 @@ Tests a Forgejo Runner against a real Forgejo instance.
 
 A runner on its own can only be observed to be running, so the scenario deploys a Forgejo instance (with the MASH Forgejo role) onto the runner's container network, mints a registration token on it, and lets the role's own systemd unit register the runner against it. Verification then asks Forgejo whether it considers the runner available, whether it sees the version this role installs, and whether the runner advertises the label that only this role's configuration file declares. Finally, a probe workflow is pushed to a repository and the resulting job log has to show the job executing on this very runner.
 
+### `connections`
+
+The same as `default`, except that the runner does not register itself: `prepare.yml` creates a runner on the helper Forgejo with `forgejo forgejo-cli actions register`, as creating one in Forgejo's web interface would, and the role is given its UUID and token through `forgejo_runner_connections`. Verification additionally checks that the runner Forgejo sees is that runner, that no `.runner` registration file was created, and that the token is in a file of its own rather than in the configuration file.
+
 ## Running
 
 By default it is configured to run the scenarios on Ubuntu 26.04.

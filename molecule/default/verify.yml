@@ -14,6 +14,10 @@
     forgejo_runner_molecule_api_base: "http://localhost:{{ forgejo_runner_molecule_forgejo_bind_port }}/api/v1"
     forgejo_runner_molecule_repository_path: "{{ forgejo_runner_molecule_admin_username }}/{{ forgejo_runner_molecule_repository_name }}"
 
+    # A runner which registers itself takes the role's name; a pre-registered one keeps its own.
+    forgejo_runner_molecule_expected_runner_name: >-
+      {{ forgejo_runner_molecule_preregistered_runner_name if forgejo_runner_molecule_mode == 'connections' else forgejo_runner_runner_name }}
+
     forgejo_runner_verify_units:
       - forgejo-runner.service
 
@@ -127,7 +131,7 @@
             that:
               - forgejo_runner_registry.status == 200
               - forgejo_runner_registry.json | length == 1
-              - forgejo_runner_registry.json[0].name == forgejo_runner_runner_name
+              - forgejo_runner_registry.json[0].name == forgejo_runner_molecule_expected_runner_name
               - forgejo_runner_registry.json[0].status in ['idle', 'active']
             fail_msg: "Forgejo does not report an available runner: {{ forgejo_runner_registry.json | default(forgejo_runner_registry.content | default('no response')) }}"
             success_msg: >-
@@ -152,6 +156,40 @@
               The runner advertises {{ forgejo_runner_registry.json[0].labels }},
               which does not include the configured '{{ forgejo_runner_molecule_label }}'
             success_msg: "The runner advertises the configured label '{{ forgejo_runner_molecule_label }}'"
+
+        # A runner which connects with a UUID and token must not have registered itself
+        # as well, and its token must be in its own file rather than in config.yaml.
+        - name: Verify the Forgejo Runner connection's files
+          when: forgejo_runner_molecule_mode == 'connections'
+          block:
+            - name: Read the pre-registered runner's token
+              ansible.builtin.slurp:
+                src: /root/forgejo-runner-molecule/runner-token
+              register: forgejo_runner_molecule_runner_token_file
+              no_log: true
+
+            - name: Inspect the Forgejo Runner files
+              ansible.builtin.stat:
+                path: "/forgejo-runner/config/{{ item }}"
+              loop: [.runner, tokens/molecule.token]
+              register: forgejo_runner_molecule_files
+
+            - name: Read the Forgejo Runner configuration file
+              ansible.builtin.slurp:
+                src: /forgejo-runner/config/config.yaml
+              register: forgejo_runner_molecule_config_file
+              no_log: true
+
+            - name: Assert the runner did not register itself and keeps its token out of its configuration
+              ansible.builtin.assert:
+                that:
+                  - not forgejo_runner_molecule_files.results[0].stat.exists
+                  - forgejo_runner_molecule_files.results[1].stat.exists
+                  - forgejo_runner_molecule_files.results[1].stat.mode == '0600'
+                  - (forgejo_runner_molecule_runner_token_file.content | b64decode | trim) not in (forgejo_runner_molecule_config_file.content | b64decode)
+                fail_msg: >-
+                  Expected no .runner file, and the token in tokens/molecule.token (0600) and not in config.yaml
+                success_msg: "No registration file, and the token is in a file of its own"
 
         # Everything above proves the runner is registered and reachable. Whether it
         # can actually run a job is a separate question, and the only way to answer

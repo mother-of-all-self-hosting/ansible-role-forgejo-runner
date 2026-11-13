@@ -101,3 +101,19 @@ host:
   # The parent directory of a job's working directory.
   # If it's empty, $HOME/.cache/act/ will be used.
   workdir_parent:
+{% if forgejo_runner_connections | length > 0 %}
+
+server:
+  # Runners which already exist on Forgejo (see `forgejo_runner_connections`).
+  # Each token is read from a file of its own, so that it is not in this file.
+  connections:
+{% for connection in forgejo_runner_connections %}
+    {{ connection.name | to_json }}:
+      url: {{ connection.url | default(forgejo_runner_instance_url) | to_json }}
+      uuid: {{ connection.uuid | to_json }}
+      token_url: {{ ('file:/data/tokens/' + connection.name + '.token') | to_json }}
+{% if connection.labels is defined %}
+      labels: {{ connection.labels | to_json }}
+{% endif %}
+{% endfor %}
+{% endif %}

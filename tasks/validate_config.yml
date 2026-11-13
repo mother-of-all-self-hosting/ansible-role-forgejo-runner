@@ -30,7 +30,55 @@
     - forgejo_runner_gid
     - forgejo_runner_container_network
     - forgejo_runner_docker_endpoint
+    - forgejo_runner_capacity
+
+- name: Fail if required Forgejo Runner registration settings not defined
+  ansible.builtin.fail:
+    msg: >-
+      You need to define a required configuration setting (`{{ item }}`),
+      or list runners which already exist on Forgejo in `forgejo_runner_connections` instead.
+  with_items:
     - forgejo_runner_runner_name
     - forgejo_runner_instance_url
     - forgejo_runner_registration_token
-    - forgejo_runner_capacity
+  when: "forgejo_runner_connections | length == 0 and lookup('vars', item, default='') | string | length == 0"
+
+- name: Validate Forgejo Runner connections
+  when: forgejo_runner_connections | length > 0
+  block:
+    - name: Fail if both a registration token and connections are defined
+      ansible.builtin.fail:
+        msg: >-
+          `forgejo_runner_registration_token` and `forgejo_runner_connections` are mutually exclusive:
+          a runner either registers itself with a registration token, or uses runners which already exist on Forgejo.
+          Remove one of them.
+      when: forgejo_runner_registration_token | string | length > 0
+
+    # Checked without looping over the connections, because a failed loop item is printed
+    # whole, token included. Only the positions and names of invalid items are reported.
+    - name: Fail if a Forgejo Runner connection is invalid
+      ansible.builtin.fail:
+        msg: >-
+          Each item in `forgejo_runner_connections` needs a unique `name` (a string of letters, digits, `-` and `_`),
+          a `uuid`, a `token` (letters and digits), a `url` (http or https) unless `forgejo_runner_instance_url` is set,
+          and, optionally, `labels` as a list.
+          Invalid items: {{ forgejo_runner_connections_invalid | join(', ') }}.
+      when: forgejo_runner_connections_invalid | length > 0
+      vars:
+        forgejo_runner_connections_names: "{{ forgejo_runner_connections | map('default', {}) | map(attribute='name', default='') | map('string') | list }}"
+        forgejo_runner_connections_invalid: |-
+          {%- set invalid = [] -%}
+          {%- for item in forgejo_runner_connections -%}
+          {%- set name = (item.name | default('') | string) if item is mapping else '' -%}
+          {%- if item is not mapping
+            or item.name | default('') is not string
+            or name is not match('^[A-Za-z0-9_-]+$')
+            or forgejo_runner_connections_names | select('equalto', name) | list | length > 1
+            or (item.uuid | default('') | string) is not match('^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$')
+            or (item.token | default('') | string) is not match('^[A-Za-z0-9]+$')
+            or (item.url | default(forgejo_runner_instance_url) | string) is not match('^https?://')
+            or (item.labels is defined and (item.labels is string or item.labels is mapping or item.labels is not sequence)) -%}
+          {%- set _ = invalid.append('#' ~ loop.index ~ ((' (' ~ name ~ ')') if name else '')) -%}
+          {%- endif -%}
+          {%- endfor -%}
+          {{ invalid }}

@@ -24,6 +24,7 @@ Type=simple
 Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
 ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ forgejo_runner_container_cleanup_command | trim | replace("\n", " ") }}'
 
+{% if forgejo_runner_connections | length == 0 %}
 ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ forgejo_runner_config_path }}/.runner ] && \
       {{ devture_systemd_docker_base_host_command_docker }} run \
       --rm \
@@ -43,6 +44,7 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '[ ! -f {{ fo
       {% for arg in forgejo_runner_process_register_extra_arguments %}
       {{ arg }} \
       {% endfor %}
+{% endif %}
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --rm \

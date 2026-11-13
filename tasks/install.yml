@@ -26,6 +26,73 @@
     - env
   register: forgejo_runner_support_files_result
 
+# A registration file and configured connections cannot be used together: the runner refuses
+# to start. Deleting the file would leave its runner registered on Forgejo without anyone
+# noticing, so ask for it to be removed deliberately instead.
+- name: Check for a Forgejo Runner registration file
+  when: forgejo_runner_connections | length > 0
+  ansible.builtin.stat:
+    path: "{{ forgejo_runner_config_path }}/.runner"
+  register: forgejo_runner_registration_file_stat
+
+- name: Fail if a Forgejo Runner registration file conflicts with the connections
+  when: forgejo_runner_connections | length > 0 and forgejo_runner_registration_file_stat.stat.exists
+  ansible.builtin.fail:
+    msg: >-
+      `forgejo_runner_connections` is set, but this runner still has a registration file
+      (`{{ forgejo_runner_config_path }}/.runner`) from registering itself with a registration token.
+      The runner cannot use both. Delete that file, and the runner it registered on Forgejo if it is no longer needed,
+      then re-run the playbook.
+
+- name: Ensure Forgejo Runner tokens path exists
+  when: forgejo_runner_connections | length > 0
+  ansible.builtin.file:
+    path: "{{ forgejo_runner_config_path }}/tokens"
+    state: directory
+    mode: "0700"
+    owner: "{{ forgejo_runner_uid }}"
+    group: "{{ forgejo_runner_gid }}"
+
+- name: Ensure Forgejo Runner connection tokens are installed
+  ansible.builtin.copy:
+    content: "{{ item.token }}"
+    dest: "{{ forgejo_runner_config_path }}/tokens/{{ item.name }}.token"
+    mode: "0600"
+    owner: "{{ forgejo_runner_uid }}"
+    group: "{{ forgejo_runner_gid }}"
+  loop: "{{ forgejo_runner_connections }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: forgejo_runner_connection_tokens_result
+  diff: false
+  no_log: true
+
+- name: Find stale Forgejo Runner connection tokens
+  when: forgejo_runner_connections | length > 0
+  ansible.builtin.find:
+    paths: "{{ forgejo_runner_config_path }}/tokens"
+    patterns: "*"
+    hidden: true
+    file_type: any
+  register: forgejo_runner_connection_tokens_found
+
+- name: Ensure stale Forgejo Runner connection tokens do not exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ forgejo_runner_connection_tokens_found.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when: (item.path | basename) not in (forgejo_runner_connections | map(attribute='name') | map('regex_replace', '$', '.token') | list)
+  register: forgejo_runner_connection_tokens_cleanup_result
+
+- name: Ensure Forgejo Runner tokens path does not exist without connections
+  when: forgejo_runner_connections | length == 0
+  ansible.builtin.file:
+    path: "{{ forgejo_runner_config_path }}/tokens"
+    state: absent
+  register: forgejo_runner_tokens_path_removal_result
+
 - name: Ensure Forgejo Runner configuration file installed
   ansible.builtin.copy:
     content: "{{ forgejo_runner_configuration | to_nice_yaml(indent=2, width=999999) }}"
@@ -97,6 +164,9 @@
       {{
         forgejo_runner_support_files_result.changed | default(false)
         or forgejo_runner_config_file_result.changed | default(false)
+        or forgejo_runner_connection_tokens_result.changed | default(false)
+        or forgejo_runner_connection_tokens_cleanup_result.changed | default(false)
+        or forgejo_runner_tokens_path_removal_result.changed | default(false)
         or forgejo_runner_systemd_service_result.changed | default(false)
         or forgejo_runner_container_image_pull_result_ansible_module.changed | default(false)
         or forgejo_runner_container_image_pull_result_command.changed | default(false)

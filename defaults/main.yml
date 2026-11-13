@@ -137,6 +137,35 @@ forgejo_runner_instance_url: ""
 #   Site Administration -> Actions -> Runners -> Create new runner
 forgejo_runner_registration_token: ""
 
+# Connections to Forgejo instances, for runners which already exist on Forgejo.
+#
+# Creating a runner in Forgejo's web interface (or with `forgejo forgejo-cli actions register`)
+# hands out the runner's UUID and token instead of a registration token. List each such runner
+# here and Forgejo Runner connects with it directly, without registering itself.
+# One Forgejo Runner can serve several runners this way, e.g. one per organization.
+#
+# When this list is not empty, `forgejo_runner_registration_token` and `forgejo_runner_runner_name`
+# are not used (the runner's name is set on Forgejo) and no `.runner` registration file is created.
+#
+# Each item is a dictionary with these keys:
+# - `name`: a name for the connection, made of letters, digits, `-` and `_` (required)
+# - `uuid`: the runner's UUID (required)
+# - `token`: the runner's token (required)
+# - `url`: the Forgejo instance URL (optional, defaults to `forgejo_runner_instance_url`)
+# - `labels`: the labels for this connection (optional, defaults to `forgejo_runner_labels`)
+#
+# The tokens are stored in files of their own (in the `tokens` directory under
+# `forgejo_runner_config_path`), not in the configuration file, and are kept out of Ansible's
+# diff and log output.
+#
+# Example:
+#
+# forgejo_runner_connections:
+#   - name: example-org
+#     uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+#     token: "{{ vault_forgejo_runner_example_org_token }}"
+forgejo_runner_connections: []
+
 # How many concurrent tasks should be executed simultaneously.
 forgejo_runner_capacity: 1
 

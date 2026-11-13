@@ -29,11 +29,14 @@ See the project's [documentation](https://forgejo.org/docs/latest/admin/actions/
 
 ## Prerequisites
 
-### Retrieve a registration token
+### Retrieve a registration token, or a runner's UUID and token
 
-To set up Forgejo Runner on a Forgejo instance, you will need to retrieve the registration token which is used for registering the runner.
+The runner needs one of these from the Forgejo instance:
 
-The registration token can be obtained via Forgejo's web interface by going to `Site Administration -> Actions -> Runners -> Create new runner`. Refer to [this section](https://forgejo.org/docs/latest/admin/actions/runner-installation/#standard-registration) on the official documentation for the latest information.
+- a **registration token**, with which the runner registers itself on its first start (see [Set the registration token](#set-the-registration-token))
+- the **UUID and token of a runner** which already exists on Forgejo, with which it connects directly (see [Use runners which already exist on Forgejo](#use-runners-which-already-exist-on-forgejo-optional))
+
+Both are obtained via Forgejo's web interface under `Settings -> Actions -> Runners -> Create new runner`, for the whole instance (`Site Administration`), an organization, a user or a repository. Which of the two it shows depends on the Forgejo version. Refer to [the official documentation](https://forgejo.org/docs/latest/admin/actions/runner-installation/) for the latest information.
 
 ## Adjusting the playbook configuration
 
@@ -73,11 +76,34 @@ forgejo_runner_instance_url: "{{ forgejo_hostname }}{{ forgejo_path_prefix if fo
 
 ### Set the registration token
 
-You also need to set the registration token retrieved on the Forgejo instance by adding the following configuration to your `vars.yml` file:
+Unless you [use runners which already exist on Forgejo](#use-runners-which-already-exist-on-forgejo-optional), you also need to set the registration token retrieved on the Forgejo instance by adding the following configuration to your `vars.yml` file:
 
 ```yaml
 forgejo_runner_registration_token: REGISTRATION_TOKEN_HERE
 ```
+
+### Use runners which already exist on Forgejo (optional)
+
+Instead of registering itself, the runner can connect with the UUID and token of runners which already exist on Forgejo, such as one created in Forgejo's web interface or with `forgejo forgejo-cli actions register`. One runner can serve several of them, e.g. one per organization:
+
+```yaml
+forgejo_runner_connections:
+  - name: example-org
+    uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+    token: "{{ vault_forgejo_runner_example_org_token }}"
+
+  - name: other-org
+    uuid: 9b2e0c4f-3c1a-4f7e-8d5b-2a6f1e0c9d84
+    token: "{{ vault_forgejo_runner_other_org_token }}"
+    # Optional: these default to `forgejo_runner_instance_url` and `forgejo_runner_labels`
+    url: https://other.example.com
+    labels:
+      - docker:docker://node:24-trixie
+```
+
+In this case `forgejo_runner_registration_token` must not be set, `forgejo_runner_runner_name` is not used (the runner's name is set on Forgejo), and no `.runner` registration file is created. If the runner registered itself earlier, the playbook asks you to delete that file first.
+
+The tokens are stored in files of their own (in the `tokens` directory of the runner's configuration path), not in the configuration file, and are kept out of Ansible's diff and log output. The runner is restarted when a token changes.
 
 ### Set runner's labels
 
@@ -94,7 +120,7 @@ Since the labels are an important aspect of the runner, they should be carefully
 
 ### Set the runner's name
 
-It is also necessary to set the runner's name by adding the following configuration to your `vars.yml` file:
+Unless you [use runners which already exist on Forgejo](#use-runners-which-already-exist-on-forgejo-optional), it is also necessary to set the runner's name by adding the following configuration to your `vars.yml` file:
 
 ```yaml
 forgejo_runner_runner_name: YOUR_RUNNER_NAME_HERE
@@ -131,7 +157,7 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 After running the command for installation, Forgejo Runner becomes available.
 
 >[!NOTE]
-> The runner will register with the Forgejo instance (provided via the `forgejo_runner_instance_url` variable) and generate a `.runner` file inside its configuration path. This file should not be modified manually. If for some reason you wish to force the registration to run again, you can delete the `.runner` file and restart the service.
+> Unless it [uses runners which already exist on Forgejo](#use-runners-which-already-exist-on-forgejo-optional), the runner will register with the Forgejo instance (provided via the `forgejo_runner_instance_url` variable) and generate a `.runner` file inside its configuration path. This file should not be modified manually. If for some reason you wish to force the registration to run again, you can delete the `.runner` file and restart the service.
 >
 > If you wish to change the labels associated with the runner, you can simply modify the `forgejo_runner_labels` variable and run the playbook again. There is no need to delete the `.runner` file and run the registration again.
 
